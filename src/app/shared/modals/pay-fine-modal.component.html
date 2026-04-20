@@ -1,0 +1,50 @@
+<!-- UC12 Uhradenie pokuty -->
+<div class="modal-overlay" (click)="onOverlayClick($event)">
+  <div class="modal" style="max-width: 420px;">
+
+    <div class="modal__header">
+      <h4 class="modal__title">Uhradenie pokuty</h4>
+      <button class="modal__close" (click)="close()">×</button>
+    </div>
+
+    <div class="modal__body">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div class="avatar avatar-lg" [class]="'avatar-' + member.avatarColor">{{ member.initials }}</div>
+        <div>
+          <div style="font-weight: 500;">{{ member.firstName }} {{ member.lastName }}</div>
+          <div style="font-size: 12px; color: #9B9894;">{{ member.email }}</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 0;">
+        <table class="data-table">
+          <thead>
+            <tr><th>Dôvod</th><th>Suma</th><th>Vybrať</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let fine of pendingFines">
+              <td>{{ fine.reason }}</td>
+              <td style="font-weight: 500;">{{ fine.amount | currency:'EUR':'symbol':'1.2-2' }}</td>
+              <td>
+                <input type="checkbox" [(ngModel)]="fine.selected" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="card__footer">
+          <span class="text-muted">Celkom na úhradu</span>
+          <span style="font-weight: 500; font-size: 15px;">{{ selectedTotal | currency:'EUR':'symbol':'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal__footer">
+      <button class="btn btn-default" (click)="close()">Zrušiť</button>
+      <button class="btn btn-primary" [disabled]="selectedTotal === 0 || isSubmitting" (click)="onSubmit()">
+        <div class="spinner spinner-sm" *ngIf="isSubmitting"></div>
+        <span *ngIf="!isSubmitting">Potvrdiť úhradu</span>
+      </button>
+    </div>
+
+  </div>
+</div>

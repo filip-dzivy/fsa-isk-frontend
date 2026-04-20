@@ -1,0 +1,152 @@
+<!-- app.component.html  ─  shell with topbar + sidebar + router-outlet -->
+
+<div class="app-shell">
+
+  <!-- ═══ TOPBAR ═══ -->
+  <header class="topbar">
+    <a routerLink="/" class="topbar__brand">
+      <div class="topbar__brand-mark">ISK</div>
+      Knižnica
+    </a>
+
+    <nav class="topbar__nav">
+      <a routerLink="/catalog"      routerLinkActive="active" class="topbar__nav-link">Katalóg</a>
+      <a routerLink="/loans"        routerLinkActive="active" class="topbar__nav-link">Výpožičky</a>
+      <a routerLink="/reservations" routerLinkActive="active" class="topbar__nav-link">Rezervácie</a>
+      <a routerLink="/members"      routerLinkActive="active" class="topbar__nav-link">Čitatelia</a>
+      <a routerLink="/ratings"      routerLinkActive="active" class="topbar__nav-link">Hodnotenia</a>
+    </nav>
+
+    <div class="topbar__right">
+      <!-- Notification bell -->
+      <button class="topbar__icon-btn" title="Notifikácie">
+        <!-- bell icon -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <!-- red dot if unread -->
+        <span class="topbar__notif-dot"></span>
+      </button>
+
+      <!-- User menu -->
+      <button class="topbar__user">
+        <div class="topbar__avatar">JN</div>
+        <span class="d-none d-md-inline">Ján Novák</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══ BODY ═══ -->
+  <div class="app-body">
+
+    <!-- ─── SIDEBAR ─── -->
+    <aside class="sidebar">
+
+      <div class="sidebar__section">
+        <div class="sidebar__section-label">Katalóg</div>
+
+        <a routerLink="/catalog" routerLinkActive="active" class="sidebar__item">
+          <span class="sidebar__item-icon">
+            <!-- book icon -->
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+          </span>
+          Všetky knihy
+        </a>
+
+        <a routerLink="/catalog" [queryParams]="{available: true}" class="sidebar__item">
+          <span class="sidebar__item-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/>
+            </svg>
+          </span>
+          Dostupné teraz
+        </a>
+
+        <a routerLink="/ratings" class="sidebar__item">
+          <span class="sidebar__item-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </span>
+          Najlepšie hodnotené
+        </a>
+      </div>
+
+      <div class="sidebar__divider"></div>
+
+      <div class="sidebar__section">
+        <div class="sidebar__section-label">Moje aktivity</div>
+
+        <a routerLink="/loans" [queryParams]="{status: 'ACTIVE'}" class="sidebar__item">
+          <span class="sidebar__item-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 9H9"/>
+            </svg>
+          </span>
+          Aktívne výpožičky
+          <span class="sidebar__item-badge sidebar__item-badge--info">2</span>
+        </a>
+
+        <a routerLink="/loans" [queryParams]="{status: 'OVERDUE'}" class="sidebar__item">
+          <span class="sidebar__item-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+            </svg>
+          </span>
+          Po termíne
+          <span class="sidebar__item-badge sidebar__item-badge--danger">1</span>
+        </a>
+
+        <a routerLink="/reservations" class="sidebar__item">
+          <span class="sidebar__item-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </span>
+          Rezervácie
+        </a>
+      </div>
+
+      <div class="sidebar__divider"></div>
+
+      <div class="sidebar__section">
+        <div class="sidebar__section-label">Správa</div>
+
+        <a routerLink="/members" class="sidebar__item">
+          <span class="sidebar__item-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </span>
+          Čitatelia
+        </a>
+
+        <a routerLink="/fines" class="sidebar__item">
+          <span class="sidebar__item-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+          </span>
+          Pokuty
+          <span class="sidebar__item-badge sidebar__item-badge--danger">3</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- ─── ROUTER OUTLET ─── -->
+    <main class="main-content">
+      <router-outlet></router-outlet>
+    </main>
+
+  </div><!-- /app-body -->
+</div><!-- /app-shell -->

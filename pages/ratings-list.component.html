@@ -1,0 +1,137 @@
+<!-- ratings-list.component.html  ─  RQ26 RQ27 RQ28 RQ29 -->
+
+<div class="page-header">
+  <div>
+    <h2 class="page-header__title">Hodnotenia kníh</h2>
+    <p class="page-header__subtitle">Recenzie a štatistiky od čitateľov</p>
+  </div>
+</div>
+
+<!-- ── Book selector ── -->
+<div class="card" style="margin-bottom: 20px;">
+  <div class="card__body" style="padding: 14px 20px;">
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <div class="form-search" style="flex: 1; max-width: 360px;">
+        <svg class="form-search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input class="form-control" placeholder="Vyber knihu na zobrazenie hodnotení…"
+               [(ngModel)]="bookSearch" (input)="onBookSearch()" />
+      </div>
+      <span class="text-muted" *ngIf="selectedBook">
+        ISBN: <code>{{ selectedBook.isbn }}</code>
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Rating summary (RQ29) ── -->
+<div class="rating-summary" *ngIf="selectedBook && summary">
+  <div class="rating-summary__score-block">
+    <div class="rating-summary__big">{{ summary.average | number:'1.1-1' }}</div>
+    <div class="star-row rating-summary__stars d-flex">
+      <svg *ngFor="let s of starsArray(summary.average)"
+           class="star-row__star" [class.empty]="!s.filled"
+           viewBox="0 0 14 14">
+        <polygon *ngIf="s.filled"  points="7,1 8.8,5.2 13,5.6 9.9,8.6 10.8,12.8 7,10.6 3.2,12.8 4.1,8.6 1,5.6 5.2,5.2" fill="#EF9F27"/>
+        <polygon *ngIf="!s.filled" points="7,1 8.8,5.2 13,5.6 9.9,8.6 10.8,12.8 7,10.6 3.2,12.8 4.1,8.6 1,5.6 5.2,5.2" fill="none" stroke="#DDDBD8" stroke-width="1"/>
+      </svg>
+    </div>
+    <div class="rating-summary__count">{{ summary.totalCount }} hodnotení</div>
+  </div>
+
+  <div class="rating-summary__bars">
+    <div class="rating-summary__bar-row" *ngFor="let score of [5,4,3,2,1]">
+      <span class="rating-summary__bar-label">{{ score }}</span>
+      <div class="rating-summary__bar-track">
+        <div class="rating-summary__bar-fill"
+             [style.width.%]="barPercent(score)"></div>
+      </div>
+      <span class="rating-summary__bar-count">{{ summary.distribution[score] || 0 }}</span>
+    </div>
+  </div>
+
+  <div class="rating-summary__book-info">
+    <div style="font-weight: 500; font-size: 14px; color: #2E2D2B;">{{ selectedBook.title }}</div>
+    <div style="font-size: 12px; color: #9B9894; margin-top: 3px;">{{ selectedBook.author }}</div>
+    <div style="font-size: 12px; color: #9B9894; margin-top: 6px; font-family: monospace;">{{ selectedBook.isbn }}</div>
+  </div>
+</div>
+
+<!-- ── Empty (no book selected) ── -->
+<div *ngIf="!selectedBook" class="empty-state">
+  <div class="empty-state__icon">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#C4C2BE" stroke-width="1.5">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  </div>
+  <div class="empty-state__title">Vyber knihu</div>
+  <div class="empty-state__desc">Zadaj názov alebo ISBN knihy do poľa vyššie pre zobrazenie hodnotení.</div>
+</div>
+
+<!-- ── Individual ratings table ── -->
+<div class="card" *ngIf="selectedBook && ratings.length > 0">
+  <div class="card__header">
+    <div>
+      <div class="card__title">Hodnotenia</div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <select class="form-select" style="width: 140px;" [(ngModel)]="sortOrder" (change)="onSort()">
+        <option value="newest">Najnovšie</option>
+        <option value="highest">Najvyššie skóre</option>
+        <option value="lowest">Najnižšie skóre</option>
+      </select>
+    </div>
+  </div>
+
+  <table class="data-table">
+    <thead>
+    <tr>
+      <th>Čitateľ</th>
+      <th>Skóre</th>
+      <th>Komentár</th>
+      <th>Dátum</th>
+      <th>Akcie</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let r of ratings">
+      <td>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div class="avatar avatar-sm avatar-purple">{{ r.memberInitials }}</div>
+          <span class="data-table__cell-primary">{{ r.memberName }}</span>
+        </div>
+      </td>
+      <td>
+        <div class="star-row d-flex">
+          <svg *ngFor="let s of starsArray(r.score)"
+               class="star-row__star" [class.empty]="!s.filled"
+               viewBox="0 0 14 14">
+            <polygon *ngIf="s.filled"  points="7,1 8.8,5.2 13,5.6 9.9,8.6 10.8,12.8 7,10.6 3.2,12.8 4.1,8.6 1,5.6 5.2,5.2" fill="#EF9F27"/>
+            <polygon *ngIf="!s.filled" points="7,1 8.8,5.2 13,5.6 9.9,8.6 10.8,12.8 7,10.6 3.2,12.8 4.1,8.6 1,5.6 5.2,5.2" fill="none" stroke="#DDDBD8" stroke-width="1"/>
+          </svg>
+        </div>
+      </td>
+      <td style="max-width: 300px;">
+        <span *ngIf="r.comment" style="font-size: 13px; color: #4A4846;">{{ r.comment }}</span>
+        <span *ngIf="!r.comment" class="text-muted">—</span>
+      </td>
+      <td><span class="text-muted">{{ r.createdAt | date:'d.M.yyyy' }}</span></td>
+      <td>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn btn-ghost btn-sm" (click)="editRating(r)" *ngIf="r.canEdit">Upraviť</button>
+          <button class="btn btn-ghost btn-sm" style="color: #791F1F;" (click)="deleteRating(r)" *ngIf="r.canEdit">Zmazať</button>
+        </div>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ── Empty ratings ── -->
+<div *ngIf="selectedBook && ratings.length === 0" class="card">
+  <div class="empty-state">
+    <div class="empty-state__title">Žiadne hodnotenia</div>
+    <div class="empty-state__desc">Táto kniha ešte nebola ohodnotená žiadnym čitateľom.</div>
+  </div>
+</div>

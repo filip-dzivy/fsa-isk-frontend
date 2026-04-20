@@ -1,0 +1,227 @@
+<!-- ═══════════════════════════════════════════════════════════
+     modal-new-loan.component.html  ─  UC02 Vytvorenie výpožičky
+     ═══════════════════════════════════════════════════════════ -->
+
+<div class="modal-overlay" (click)="onOverlayClick($event)">
+  <div class="modal">
+
+    <div class="modal__header">
+      <h4 class="modal__title">Nová výpožička</h4>
+      <button class="modal__close" (click)="close()">×</button>
+    </div>
+
+    <div class="modal__body">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <!-- Member search -->
+        <div class="form-group">
+          <label for="memberId">Čitateľ</label>
+          <div class="form-search">
+            <svg class="form-search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input id="memberId" class="form-control"
+                   [class.is-invalid]="submitted && form.get('memberId')?.invalid"
+                   placeholder="Hľadaj meno alebo e-mail čitateľa…"
+                   formControlName="memberSearch"
+                   (input)="searchMember()" />
+          </div>
+
+          <!-- Member result -->
+          <div *ngIf="selectedMember" style="margin-top: 8px; padding: 10px 12px; background: #F7F6F4; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+            <div class="avatar avatar-sm avatar-blue">{{ selectedMember.initials }}</div>
+            <div>
+              <div style="font-size: 13px; font-weight: 500;">{{ selectedMember.fullName }}</div>
+              <div style="font-size: 12px; color: #9B9894;">{{ selectedMember.email }}</div>
+            </div>
+            <!-- Cannnot borrow warning -->
+            <div *ngIf="!selectedMember.canBorrow" class="badge badge-overdue" style="margin-left: auto;">
+              {{ selectedMember.blockReason }}
+            </div>
+            <div *ngIf="selectedMember.canBorrow" class="badge badge-active" style="margin-left: auto;">
+              Môže si požičať
+            </div>
+          </div>
+          <div class="form-error" *ngIf="submitted && form.get('memberId')?.hasError('required')">
+            Čitateľ je povinný.
+          </div>
+        </div>
+
+        <!-- ISBN input -->
+        <div class="form-group">
+          <label for="isbn">ISBN knihy</label>
+          <input id="isbn" type="text" class="form-control"
+                 [class.is-invalid]="submitted && form.get('isbn')?.invalid"
+                 placeholder="978-0-13-235088-4"
+                 formControlName="isbn"
+                 (blur)="lookupBook()" />
+          <div class="form-hint">Záskan čiarový kód alebo zadaj ISBN ručne.</div>
+
+          <!-- Book result -->
+          <div *ngIf="foundBook" style="margin-top: 8px; padding: 10px 12px; background: #F7F6F4; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div style="font-size: 13px; font-weight: 500;">{{ foundBook.title }}</div>
+              <div style="font-size: 12px; color: #9B9894;">{{ foundBook.author }}</div>
+            </div>
+            <span class="badge" [class.badge-active]="foundBook.availableCopies > 0"
+                  [class.badge-overdue]="foundBook.availableCopies === 0">
+              {{ foundBook.availableCopies > 0 ? foundBook.availableCopies + ' dostupných' : 'Nedostupná' }}
+            </span>
+          </div>
+
+          <div class="form-error" *ngIf="submitted && form.get('isbn')?.hasError('required')">ISBN je povinné.</div>
+          <div class="form-error" *ngIf="bookNotFound">Kniha s týmto ISBN sa nenašla.</div>
+          <div class="form-error" *ngIf="foundBook && foundBook.availableCopies === 0">
+            Kniha nie je dostupná. Čitateľ si môže vytvoriť rezerváciu.
+          </div>
+        </div>
+
+        <!-- Loan duration info -->
+        <div *ngIf="selectedMember?.canBorrow && foundBook?.availableCopies > 0"
+             style="padding: 12px; background: #E6F1FB; border-radius: 8px; font-size: 13px; color: #0C447C;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align: middle; margin-right: 4px;">
+            <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+          </svg>
+          Termín vrátenia: <strong>{{ dueDate | date:'d.M.yyyy' }}</strong> (14 dní od dnes)
+        </div>
+
+      </form>
+    </div>
+
+    <div class="modal__footer">
+      <button class="btn btn-default" (click)="close()">Zrušiť</button>
+      <button class="btn btn-primary"
+              [disabled]="isSubmitting || !selectedMember?.canBorrow || foundBook?.availableCopies === 0"
+              (click)="onSubmit()">
+        <div class="spinner spinner-sm" *ngIf="isSubmitting"></div>
+        <span *ngIf="!isSubmitting">Vytvoriť výpožičku</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     modal-register-member.component.html  ─  UC11
+     ═══════════════════════════════════════════════════════════ -->
+<!--
+<div class="modal-overlay">
+  <div class="modal">
+
+    <div class="modal__header">
+      <h4 class="modal__title">Registrácia nového čitateľa</h4>
+      <button class="modal__close" (click)="close()">×</button>
+    </div>
+
+    <div class="modal__body">
+      <form [formGroup]="form">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="form-group">
+            <label>Meno</label>
+            <input class="form-control" [class.is-invalid]="submitted && form.get('firstName')?.invalid"
+                   formControlName="firstName" placeholder="Ján" />
+            <div class="form-error" *ngIf="submitted && form.get('firstName')?.hasError('required')">
+              Meno je povinné.
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Priezvisko</label>
+            <input class="form-control" [class.is-invalid]="submitted && form.get('lastName')?.invalid"
+                   formControlName="lastName" placeholder="Novák" />
+            <div class="form-error" *ngIf="submitted && form.get('lastName')?.hasError('required')">
+              Priezvisko je povinné.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>E-mail</label>
+          <input class="form-control" type="email"
+                 [class.is-invalid]="submitted && form.get('email')?.invalid"
+                 formControlName="email" placeholder="jan.novak@example.sk" />
+          <div class="form-error" *ngIf="submitted && form.get('email')?.hasError('required')">E-mail je povinný.</div>
+          <div class="form-error" *ngIf="submitted && form.get('email')?.hasError('email')">Neplatný formát e-mailu.</div>
+          <div class="form-error" *ngIf="emailTaken">Tento e-mail je už registrovaný.</div>
+        </div>
+
+        <div class="form-group">
+          <label>Typ členstva</label>
+          <select class="form-select" formControlName="membershipType">
+            <option value="ADULT">Dospelý</option>
+            <option value="STUDENT">Študent</option>
+            <option value="SENIOR">Senior</option>
+          </select>
+          <div class="form-hint">Členstvo platí 12 mesiacov od dátumu registrácie.</div>
+        </div>
+
+      </form>
+    </div>
+
+    <div class="modal__footer">
+      <button class="btn btn-default" (click)="close()">Zrušiť</button>
+      <button class="btn btn-primary" [disabled]="isSubmitting" (click)="onSubmit()">
+        <div class="spinner spinner-sm" *ngIf="isSubmitting"></div>
+        <span *ngIf="!isSubmitting">Registrovať</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+-->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     modal-pay-fine.component.html  ─  UC12 Zaplatenie pokuty
+     ═══════════════════════════════════════════════════════════ -->
+<!--
+<div class="modal-overlay">
+  <div class="modal" style="max-width: 420px;">
+
+    <div class="modal__header">
+      <h4 class="modal__title">Uhradenie pokuty</h4>
+      <button class="modal__close" (click)="close()">×</button>
+    </div>
+
+    <div class="modal__body">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div class="avatar avatar-lg avatar-amber">{{ member.initials }}</div>
+        <div>
+          <div style="font-weight: 500;">{{ member.fullName }}</div>
+          <div style="font-size: 12px; color: #9B9894;">{{ member.email }}</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 0;">
+        <table class="data-table">
+          <thead>
+            <tr><th>Dôvod</th><th>Suma</th><th>Vybrať</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let fine of pendingFines">
+              <td>{{ fine.reason }}</td>
+              <td style="font-weight: 500;">{{ fine.amount | currency:'EUR' }}</td>
+              <td>
+                <input type="checkbox" [(ngModel)]="fine.selected" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="card__footer">
+          <span class="text-muted">Celkom na úhradu</span>
+          <span style="font-weight: 500; font-size: 15px;">{{ selectedTotal | currency:'EUR' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal__footer">
+      <button class="btn btn-default" (click)="close()">Zrušiť</button>
+      <button class="btn btn-primary" [disabled]="selectedTotal === 0 || isSubmitting" (click)="onSubmit()">
+        Potvrdiť úhradu
+      </button>
+    </div>
+
+  </div>
+</div>
+-->

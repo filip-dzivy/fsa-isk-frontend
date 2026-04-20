@@ -1,0 +1,205 @@
+<!-- catalog-list.component.html  ─  UC01 Vyhľadanie knihy v katalógu -->
+
+<!-- ── Page header ── -->
+<div class="page-header">
+  <div>
+    <h2 class="page-header__title">Katalóg kníh</h2>
+    <p class="page-header__subtitle">{{ totalBooks }} kníh celkovo · {{ availableBooks }} dostupných</p>
+  </div>
+  <div class="page-header__actions">
+    <button class="btn btn-default btn-sm">
+      <!-- filter icon -->
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+      </svg>
+      Filter
+    </button>
+    <button class="btn btn-primary btn-sm" (click)="openAddBookModal()">
+      + Pridať knihu
+    </button>
+  </div>
+</div>
+
+<!-- ── Search & filter bar ── -->
+<div class="card" style="margin-bottom: 20px;">
+  <div class="card__body" style="padding: 14px 20px;">
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+
+      <!-- Search input -->
+      <div class="form-search" style="flex: 1; min-width: 220px;">
+        <svg class="form-search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Hľadaj podľa názvu, autora alebo ISBN…"
+          [(ngModel)]="searchQuery"
+          (input)="onSearch()"
+        />
+      </div>
+
+      <!-- Genre filter -->
+      <select class="form-select" style="width: 160px;" [(ngModel)]="selectedGenre" (change)="onFilter()">
+        <option value="">Všetky žánre</option>
+        <option value="programming">Programovanie</option>
+        <option value="architecture">Architektúra SW</option>
+        <option value="management">Manažment</option>
+      </select>
+
+      <!-- Availability filter -->
+      <select class="form-select" style="width: 160px;" [(ngModel)]="availabilityFilter" (change)="onFilter()">
+        <option value="">Všetky</option>
+        <option value="available">Iba dostupné</option>
+        <option value="unavailable">Nedostupné</option>
+      </select>
+
+      <!-- View toggle -->
+      <div style="display: flex; gap: 3px; background: #F7F6F4; border-radius: 8px; padding: 3px; border: 0.5px solid #EEECEA;">
+        <button
+          class="btn btn-sm"
+          [class.btn-default]="viewMode === 'grid'"
+          [style.background]="viewMode === 'grid' ? '#fff' : 'transparent'"
+          [style.border-color]="viewMode === 'grid' ? '#DDDBD8' : 'transparent'"
+          (click)="viewMode = 'grid'"
+          title="Mriežka"
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/>
+            <rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/>
+          </svg>
+        </button>
+        <button
+          class="btn btn-sm"
+          [style.background]="viewMode === 'list' ? '#fff' : 'transparent'"
+          [style.border-color]="viewMode === 'list' ? '#DDDBD8' : 'transparent'"
+          (click)="viewMode = 'list'"
+          title="Tabuľka"
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M2 4h12M2 8h12M2 12h12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Loading state ── -->
+<div *ngIf="isLoading" style="display: flex; justify-content: center; padding: 48px 0;">
+  <div class="spinner spinner-lg"></div>
+</div>
+
+<!-- ── Empty state ── -->
+<div *ngIf="!isLoading && books.length === 0" class="empty-state">
+  <div class="empty-state__icon">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#C4C2BE" stroke-width="1.5">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    </svg>
+  </div>
+  <div class="empty-state__title">Žiadne knihy nenájdené</div>
+  <div class="empty-state__desc">Skús zmeniť vyhľadávacie kritériá alebo pridaj nové knihy do katalógu.</div>
+  <button class="btn btn-primary" (click)="openAddBookModal()">+ Pridať prvú knihu</button>
+</div>
+
+<!-- ── GRID VIEW ── -->
+<div *ngIf="!isLoading && books.length > 0 && viewMode === 'grid'"
+     style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px;">
+  <div
+    class="book-card"
+    *ngFor="let book of books"
+    (click)="openBookDetail(book)"
+  >
+    <!-- Colour spine based on genre -->
+    <div class="book-card__spine" [style.background]="genreColor(book.genre)">
+      <span style="font-size: 11px; font-weight: 500; opacity: .75; line-height: 1.3;">
+        {{ book.title | slice:0:20 }}
+      </span>
+    </div>
+
+    <div class="book-card__title">{{ book.title }}</div>
+    <div class="book-card__author">{{ book.author }}</div>
+
+    <div class="book-card__footer">
+      <span class="badge" [class.badge-active]="book.availableCopies > 0"
+            [class.badge-overdue]="book.availableCopies === 0">
+        {{ book.availableCopies > 0 ? book.availableCopies + ' dostupné' : 'Nedostupná' }}
+      </span>
+      <!-- Quick reserve button for unavailable books -->
+      <button
+        *ngIf="book.availableCopies === 0"
+        class="btn btn-ghost btn-sm"
+        (click)="$event.stopPropagation(); reserveBook(book)"
+        title="Rezervovať"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── LIST / TABLE VIEW ── -->
+<div *ngIf="!isLoading && books.length > 0 && viewMode === 'list'" class="card">
+  <table class="data-table">
+    <thead>
+    <tr>
+      <th>Kniha</th>
+      <th>ISBN</th>
+      <th>Žáner</th>
+      <th>Kópie</th>
+      <th>Dostupné</th>
+      <th>Akcie</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let book of books">
+      <td>
+        <div class="data-table__cell-primary">{{ book.title }}</div>
+        <div class="data-table__cell-secondary">{{ book.author }}</div>
+      </td>
+      <td><code>{{ book.isbn }}</code></td>
+      <td>{{ book.genre || '—' }}</td>
+      <td>{{ book.totalCopies }}</td>
+      <td>
+          <span class="badge" [class.badge-active]="book.availableCopies > 0"
+                [class.badge-overdue]="book.availableCopies === 0">
+            {{ book.availableCopies > 0 ? book.availableCopies + ' / ' + book.totalCopies : 'Nedostupná' }}
+          </span>
+      </td>
+      <td>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn btn-default btn-sm" (click)="openBookDetail(book)">Detail</button>
+          <button class="btn btn-ghost btn-sm" (click)="editBook(book)">Upraviť</button>
+        </div>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ── Pagination ── -->
+<div *ngIf="!isLoading && totalPages > 1"
+     style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px;">
+  <span class="text-muted">Zobrazené {{ pageFrom }}–{{ pageTo }} z {{ totalBooks }}</span>
+  <nav class="pagination">
+    <button class="pagination__item" [disabled]="currentPage === 1" (click)="prevPage()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+    </button>
+    <button
+      class="pagination__item"
+      *ngFor="let p of pageNumbers"
+      [class.active]="p === currentPage"
+      (click)="goToPage(p)"
+    >{{ p }}</button>
+    <button class="pagination__item" [disabled]="currentPage === totalPages" (click)="nextPage()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+    </button>
+  </nav>
+</div>
