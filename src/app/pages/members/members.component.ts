@@ -29,30 +29,33 @@ export class MembersComponent implements OnInit {
   constructor(private memberService: MemberService) {}
 
   ngOnInit(): void {
-    this.memberService.getMembers().subscribe(members => {
-      this.allMembers = members;
-      this.computeStats(members);
-      this.applyFilters();
-      this.isLoading = false;
+    this.loadMembers();
+  }
+
+  loadMembers(): void {
+    this.isLoading = true;
+    this.memberService.getMembers().subscribe({
+      next: members => {
+        this.allMembers = members;
+        this.computeStats(members);
+        this.applyFilters();
+        this.isLoading = false;
+      },
+      error: () => { this.isLoading = false; },
     });
   }
 
   private computeStats(members: MemberView[]): void {
     this.stats = {
-      total: members.length,
-      active: members.filter(m => m.membershipStatus === 'ACTIVE').length,
+      total:        members.length,
+      active:       members.filter(m => m.membershipStatus === 'ACTIVE').length,
       expiringSoon: members.filter(m => m.expiryWarning).length,
-      withFines: members.filter(m => m.unpaidFines > 0).length,
+      withFines:    members.filter(m => m.unpaidFines > 0).length,
     };
   }
 
-  onSearch(): void {
-    this.applyFilters();
-  }
-
-  onFilter(): void {
-    this.applyFilters();
-  }
+  onSearch(): void { this.applyFilters(); }
+  onFilter(): void { this.applyFilters(); }
 
   private applyFilters(): void {
     let filtered = [...this.allMembers];
@@ -66,7 +69,7 @@ export class MembersComponent implements OnInit {
       );
     }
     if (this.membershipFilter) {
-      filtered = filtered.filter(m => m.membershipType === this.membershipFilter);
+      filtered = filtered.filter(m => m.memberRole === this.membershipFilter);
     }
     if (this.statusFilter === 'ACTIVE') {
       filtered = filtered.filter(m => m.membershipStatus === 'ACTIVE');
@@ -80,9 +83,9 @@ export class MembersComponent implements OnInit {
 
   membershipTypeLabel(type: string): string {
     const map: Record<string, string> = {
-      ADULT: 'Dospelý',
-      STUDENT: 'Študent',
-      SENIOR: 'Senior',
+      MEMBER:    'Čitateľ',
+      LIBRARIAN: 'Knihovník',
+      ADMIN:     'Administrátor',
     };
     return map[type] ?? type;
   }
@@ -93,11 +96,7 @@ export class MembersComponent implements OnInit {
 
   onMemberRegistered(member?: MemberView): void {
     this.showRegisterModal = false;
-    if (member) {
-      this.allMembers.push(member);
-      this.computeStats(this.allMembers);
-      this.applyFilters();
-    }
+    if (member) this.loadMembers();
   }
 
   openMemberDetail(member: MemberView): void {
@@ -110,30 +109,15 @@ export class MembersComponent implements OnInit {
   }
 
   onFinesPaid(): void {
-    if (this.selectedMember) {
-      this.selectedMember.fines.forEach(f => {
-        if (f.selected) f.status = 'PAID';
-      });
-      this.selectedMember.unpaidFines = this.selectedMember.fines
-        .filter(f => f.status === 'PENDING')
-        .reduce((sum, f) => sum + f.amount, 0);
-      this.selectedMember.canBorrow = this.selectedMember.membershipActive && this.selectedMember.unpaidFines === 0;
-      this.computeStats(this.allMembers);
-    }
     this.showPayFineModal = false;
     this.selectedMember = null;
+    this.loadMembers();
   }
 
   renewMembership(member: MemberView): void {
-    const newExpiry = new Date();
-    newExpiry.setMonth(newExpiry.getMonth() + 12);
-    member.membershipExpiry = newExpiry;
-    member.membershipStatus = 'ACTIVE';
-    member.membershipActive = true;
-    member.expiryWarning = false;
-    member.daysUntilExpiry = 365;
-    member.canBorrow = member.unpaidFines === 0;
-    this.computeStats(this.allMembers);
-    alert(`Členstvo obnovené pre ${member.firstName} ${member.lastName} do ${newExpiry.toLocaleDateString('sk-SK')}`);
+    this.memberService.renewMembership(member.id).subscribe({
+      next: () => this.loadMembers(),
+      error: err => alert(`Chyba: ${err.error?.message ?? 'Nepodarilo sa obnoviť členstvo'}`),
+    });
   }
 }

@@ -33,16 +33,24 @@ export class LoansComponent implements OnInit {
   constructor(private loanService: LoanService) {}
 
   ngOnInit(): void {
-    this.loanService.getLoans().subscribe(loans => {
-      this.allLoans = loans;
-      this.counts = {
-        active: loans.filter(l => l.status === 'ACTIVE').length,
-        overdue: loans.filter(l => l.status === 'OVERDUE').length,
-        returned: loans.filter(l => l.status === 'RETURNED').length,
-        all: loans.length,
-      };
-      this.applyFilters();
-      this.isLoading = false;
+    this.loadLoans();
+  }
+
+  loadLoans(): void {
+    this.isLoading = true;
+    this.loanService.getLoans().subscribe({
+      next: loans => {
+        this.allLoans = loans;
+        this.counts = {
+          active:   loans.filter(l => l.status === 'ACTIVE').length,
+          overdue:  loans.filter(l => l.status === 'OVERDUE').length,
+          returned: loans.filter(l => l.status === 'RETURNED').length,
+          all:      loans.length,
+        };
+        this.applyFilters();
+        this.isLoading = false;
+      },
+      error: () => { this.isLoading = false; },
     });
   }
 
@@ -79,8 +87,8 @@ export class LoansComponent implements OnInit {
 
   loanStatusLabel(status: LoanStatus): string {
     const map: Record<LoanStatus, string> = {
-      ACTIVE: 'Aktívna',
-      OVERDUE: 'Po termíne',
+      ACTIVE:   'Aktívna',
+      OVERDUE:  'Po termíne',
       RETURNED: 'Vrátená',
     };
     return map[status] ?? status;
@@ -88,21 +96,17 @@ export class LoansComponent implements OnInit {
 
   returnLoan(loan: LoanView): void {
     if (!confirm(`Vrátiť knihu "${loan.bookTitle}"?`)) return;
-    loan.status = 'RETURNED';
-    loan.returnDate = new Date();
-    this.counts.active = this.allLoans.filter(l => l.status === 'ACTIVE').length;
-    this.counts.overdue = this.allLoans.filter(l => l.status === 'OVERDUE').length;
-    this.counts.returned = this.allLoans.filter(l => l.status === 'RETURNED').length;
-    this.applyFilters();
+    this.loanService.returnLoan(loan.id).subscribe({
+      next: () => this.loadLoans(),
+      error: err => alert(`Chyba: ${err.error?.message ?? 'Nepodarilo sa vrátiť knihu'}`),
+    });
   }
 
   renewLoan(loan: LoanView): void {
-    if (loan.renewalCount >= 1) return;
-    loan.renewalCount++;
-    const newDue = new Date(loan.dueDate);
-    newDue.setDate(newDue.getDate() + 14);
-    loan.dueDate = newDue;
-    alert(`Výpožička predĺžená. Nový termín: ${newDue.toLocaleDateString('sk-SK')}`);
+    this.loanService.renewLoan(loan.id).subscribe({
+      next: () => this.loadLoans(),
+      error: err => alert(`Chyba: ${err.error?.message ?? 'Nepodarilo sa predĺžiť výpožičku'}`),
+    });
   }
 
   openLoanDetail(loan: LoanView): void {
@@ -115,6 +119,7 @@ export class LoansComponent implements OnInit {
 
   onLoanCreated(): void {
     this.showNewLoanModal = false;
+    this.loadLoans();
   }
 
   dismissAlert(): void {

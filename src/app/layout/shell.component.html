@@ -10,27 +10,29 @@
 
     <nav class="topbar__nav">
       <a routerLink="/catalog"      routerLinkActive="active" class="topbar__nav-link">Katalóg</a>
-      <a routerLink="/loans"        routerLinkActive="active" class="topbar__nav-link">Výpožičky</a>
-      <a routerLink="/reservations" routerLinkActive="active" class="topbar__nav-link">Rezervácie</a>
-      <a routerLink="/members"      routerLinkActive="active" class="topbar__nav-link">Čitatelia</a>
+      <ng-container *ngIf="auth.isLoggedIn()">
+        <a routerLink="/loans"        routerLinkActive="active" class="topbar__nav-link">Výpožičky</a>
+        <a routerLink="/reservations" routerLinkActive="active" class="topbar__nav-link">Rezervácie</a>
+      </ng-container>
+      <ng-container *ngIf="auth.isLoggedIn() && (auth.hasRole('ADMIN') || auth.hasRole('LIBRARIAN'))">
+        <a routerLink="/members" routerLinkActive="active" class="topbar__nav-link">Čitatelia</a>
+      </ng-container>
     </nav>
 
     <div class="topbar__right">
-      <button class="topbar__icon-btn" title="Notifikácie">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-        </svg>
-        <span class="topbar__notif-dot" *ngIf="overdueLoansCount > 0 || readyReservationsCount > 0"></span>
-      </button>
-
-      <button class="topbar__user">
-        <div class="topbar__avatar">TB</div>
-        <span class="d-none d-md-inline">Tomáš Blaho</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M6 9l6 6 6-6"/>
-        </svg>
-      </button>
+      <ng-container *ngIf="auth.isLoggedIn(); else loginBtn">
+        <button class="topbar__user" (click)="auth.logout()">
+          <div class="topbar__avatar">{{ auth.getUsername().substring(0, 2).toUpperCase() }}</div>
+          <span class="d-none d-md-inline">{{ auth.getUsername() }}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </ng-container>
+      <ng-template #loginBtn>
+        <button class="btn btn-primary btn-sm" (click)="auth.login()">Prihlásiť sa</button>
+      </ng-template>
     </div>
   </header>
 
@@ -63,69 +65,74 @@
         </a>
       </div>
 
-      <div class="sidebar__divider"></div>
+      <ng-container *ngIf="auth.isLoggedIn()">
+        <div class="sidebar__divider"></div>
 
-      <div class="sidebar__section">
-        <div class="sidebar__section-label">Výpožičky</div>
+        <div class="sidebar__section">
+          <div class="sidebar__section-label">Výpožičky</div>
 
-        <a routerLink="/loans" [queryParams]="{status: 'ACTIVE'}" class="sidebar__item">
-          <span class="sidebar__item-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 9H9"/>
-            </svg>
-          </span>
-          Aktívne výpožičky
-          <span class="sidebar__item-badge sidebar__item-badge--info" *ngIf="activeLoansCount > 0">{{ activeLoansCount }}</span>
-        </a>
+          <a routerLink="/loans" [queryParams]="{status: 'ACTIVE'}" class="sidebar__item">
+            <span class="sidebar__item-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 9H9"/>
+              </svg>
+            </span>
+            Aktívne výpožičky
+            <span class="sidebar__item-badge sidebar__item-badge--info" *ngIf="activeLoansCount > 0">{{ activeLoansCount }}</span>
+          </a>
 
-        <a routerLink="/loans" [queryParams]="{status: 'OVERDUE'}" class="sidebar__item">
-          <span class="sidebar__item-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
-            </svg>
-          </span>
-          Po termíne
-          <span class="sidebar__item-badge sidebar__item-badge--danger" *ngIf="overdueLoansCount > 0">{{ overdueLoansCount }}</span>
-        </a>
+          <a routerLink="/loans" [queryParams]="{status: 'OVERDUE'}" class="sidebar__item">
+            <span class="sidebar__item-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+              </svg>
+            </span>
+            Po termíne
+            <span class="sidebar__item-badge sidebar__item-badge--danger" *ngIf="overdueLoansCount > 0">{{ overdueLoansCount }}</span>
+          </a>
 
-        <a routerLink="/reservations" class="sidebar__item">
-          <span class="sidebar__item-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </span>
-          Rezervácie
-          <span class="sidebar__item-badge sidebar__item-badge--info" *ngIf="readyReservationsCount > 0">{{ readyReservationsCount }}</span>
-        </a>
-      </div>
+          <a routerLink="/reservations" class="sidebar__item">
+            <span class="sidebar__item-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </span>
+            Rezervácie
+            <span class="sidebar__item-badge sidebar__item-badge--info" *ngIf="readyReservationsCount > 0">{{ readyReservationsCount }}</span>
+          </a>
+        </div>
+      </ng-container>
 
-      <div class="sidebar__divider"></div>
+      <ng-container *ngIf="auth.isLoggedIn() && (auth.hasRole('ADMIN') || auth.hasRole('LIBRARIAN'))">
+        <div class="sidebar__divider"></div>
 
-      <div class="sidebar__section">
-        <div class="sidebar__section-label">Správa</div>
+        <div class="sidebar__section">
+          <div class="sidebar__section-label">Správa</div>
 
-        <a routerLink="/members" routerLinkActive="active" class="sidebar__item">
-          <span class="sidebar__item-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-          </span>
-          Čitatelia
-        </a>
+          <a routerLink="/members" routerLinkActive="active" class="sidebar__item">
+            <span class="sidebar__item-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </span>
+            Čitatelia
+          </a>
 
-        <a routerLink="/members" [queryParams]="{filter: 'fines'}" class="sidebar__item">
-          <span class="sidebar__item-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
-            </svg>
-          </span>
-          Pokuty
-          <span class="sidebar__item-badge sidebar__item-badge--danger" *ngIf="pendingFinesCount > 0">{{ pendingFinesCount }}</span>
-        </a>
-      </div>
+          <a routerLink="/members" [queryParams]="{filter: 'fines'}" class="sidebar__item">
+            <span class="sidebar__item-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+            </span>
+            Pokuty
+            <span class="sidebar__item-badge sidebar__item-badge--danger" *ngIf="pendingFinesCount > 0">{{ pendingFinesCount }}</span>
+          </a>
+        </div>
+      </ng-container>
+
     </aside>
 
     <!-- ─── ROUTER OUTLET ─── -->

@@ -62,10 +62,18 @@ export class CatalogComponent implements OnInit {
   constructor(private bookService: BookService) {}
 
   ngOnInit(): void {
-    this.bookService.getBooks().subscribe(books => {
-      this.allBooks = books;
-      this.applyFilters();
-      this.isLoading = false;
+    this.loadBooks();
+  }
+
+  loadBooks(): void {
+    this.isLoading = true;
+    this.bookService.getBooks().subscribe({
+      next: books => {
+        this.allBooks = books;
+        this.applyFilters();
+        this.isLoading = false;
+      },
+      error: () => { this.isLoading = false; },
     });
   }
 

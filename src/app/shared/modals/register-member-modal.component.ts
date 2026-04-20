@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MemberService } from '../../services/member.service';
 import { MemberView } from '../../models/member.model';
 
 @Component({
@@ -16,12 +17,15 @@ export class RegisterMemberModalComponent {
   isSubmitting = false;
   emailTaken = false;
 
-  constructor(private fb: FormBuilder) {
+  constructor(
+    private fb: FormBuilder,
+    private memberService: MemberService,
+  ) {
     this.form = this.fb.group({
       firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
-      membershipType: ['ADULT'],
+      lastName:  ['', Validators.required],
+      email:     ['', [Validators.required, Validators.email]],
+      memberRole: ['MEMBER'],
     });
   }
 
@@ -29,37 +33,24 @@ export class RegisterMemberModalComponent {
     this.submitted = true;
     this.emailTaken = false;
     if (this.form.invalid) return;
+
     this.isSubmitting = true;
-    setTimeout(() => {
-      this.isSubmitting = false;
-      const f = this.form.value;
-      const member: MemberView = {
-        id: Date.now(),
-        firstName: f.firstName,
-        lastName: f.lastName,
-        email: f.email,
-        initials: (f.firstName[0] + f.lastName[0]).toUpperCase(),
-        avatarColor: 'blue',
-        memberRole: 'MEMBER',
-        membershipType: f.membershipType,
-        membershipStatus: 'ACTIVE',
-        membershipExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        expiryWarning: false,
-        daysUntilExpiry: 365,
-        activeLoans: 0,
-        unpaidFines: 0,
-        canBorrow: true,
-        membershipActive: true,
-        fines: [],
-      };
-      this.closed.emit(member);
-    }, 600);
+    const f = this.form.value;
+    this.memberService.createMember({ firstName: f.firstName, lastName: f.lastName, email: f.email, memberRole: f.memberRole }).subscribe({
+      next: member => { this.isSubmitting = false; this.closed.emit(member); },
+      error: err => {
+        this.isSubmitting = false;
+        if (err.status === 409) {
+          this.emailTaken = true;
+        } else {
+          alert(`Chyba: ${err.error?.message ?? 'Registrácia zlyhala'}`);
+        }
+      },
+    });
   }
 
   onOverlayClick(event: MouseEvent): void {
-    if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
-      this.close();
-    }
+    if ((event.target as HTMLElement).classList.contains('modal-overlay')) this.close();
   }
 
   close(): void {

@@ -21,6 +21,7 @@
           "builder": "@angular/build:application",
           "options": {
             "browser": "src/main.ts",
+            "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -65,7 +66,8 @@
               "buildTarget": "isk-frontend:build:production"
             },
             "development": {
-              "buildTarget": "isk-frontend:build:development"
+              "buildTarget": "isk-frontend:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

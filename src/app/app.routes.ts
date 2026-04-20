@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { ShellComponent } from './layout/shell.component';
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'catalog', pathMatch: 'full' },
@@ -14,18 +15,21 @@ export const routes: Routes = [
       },
       {
         path: 'loans',
+        canActivate: [authGuard],
         loadComponent: () =>
           import('./pages/loans/loans.component').then(m => m.LoansComponent),
       },
       {
-        path: 'members',
-        loadComponent: () =>
-          import('./pages/members/members.component').then(m => m.MembersComponent),
-      },
-      {
         path: 'reservations',
+        canActivate: [authGuard],
         loadComponent: () =>
           import('./pages/reservations/reservations.component').then(m => m.ReservationsComponent),
+      },
+      {
+        path: 'members',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import('./pages/members/members.component').then(m => m.MembersComponent),
       },
     ],
   },

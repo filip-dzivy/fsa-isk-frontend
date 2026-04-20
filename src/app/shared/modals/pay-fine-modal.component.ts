@@ -1,6 +1,8 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, of } from 'rxjs';
+import { MemberService } from '../../services/member.service';
 import { MemberView, Fine } from '../../models/member.model';
 
 @Component({
@@ -16,10 +18,10 @@ export class PayFineModalComponent implements OnInit {
   isSubmitting = false;
 
   get selectedTotal(): number {
-    return this.pendingFines
-      .filter(f => f.selected)
-      .reduce((sum, f) => sum + f.amount, 0);
+    return this.pendingFines.filter(f => f.selected).reduce((sum, f) => sum + f.amount, 0);
   }
+
+  constructor(private memberService: MemberService) {}
 
   ngOnInit(): void {
     this.pendingFines = this.member.fines
@@ -28,24 +30,23 @@ export class PayFineModalComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.selectedTotal === 0) return;
+    const selected = this.pendingFines.filter(f => f.selected);
+    if (selected.length === 0) return;
     this.isSubmitting = true;
-    setTimeout(() => {
-      this.isSubmitting = false;
-      this.pendingFines.forEach(f => {
-        if (f.selected) {
-          const orig = this.member.fines.find(mf => mf.id === f.id);
-          if (orig) orig.status = 'PAID';
-        }
-      });
-      this.closed.emit();
-    }, 600);
+
+    // Pay all selected fines in parallel
+    const calls = selected.map(f => this.memberService.payFine(this.member.id, f.id));
+    forkJoin(calls.length > 0 ? calls : [of(null)]).subscribe({
+      next: () => { this.isSubmitting = false; this.closed.emit(); },
+      error: err => {
+        this.isSubmitting = false;
+        alert(`Chyba: ${err.error?.message ?? 'Platba zlyhala'}`);
+      },
+    });
   }
 
   onOverlayClick(event: MouseEvent): void {
-    if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
-      this.close();
-    }
+    if ((event.target as HTMLElement).classList.contains('modal-overlay')) this.close();
   }
 
   close(): void {

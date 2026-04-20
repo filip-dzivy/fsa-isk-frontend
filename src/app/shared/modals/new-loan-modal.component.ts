@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MemberService } from '../../services/member.service';
 import { BookService } from '../../services/book.service';
+import { LoanService } from '../../services/loan.service';
 import { MemberView } from '../../models/member.model';
 import { Book } from '../../models/book.model';
 
@@ -36,6 +37,7 @@ export class NewLoanModalComponent implements OnInit {
     private fb: FormBuilder,
     private memberService: MemberService,
     private bookService: BookService,
+    private loanService: LoanService,
   ) {}
 
   ngOnInit(): void {
@@ -68,10 +70,7 @@ export class NewLoanModalComponent implements OnInit {
   }
 
   selectMember(member: MemberView): void {
-    this.form.patchValue({
-      memberSearch: `${member.firstName} ${member.lastName}`,
-      memberId: member.id,
-    });
+    this.form.patchValue({ memberSearch: `${member.firstName} ${member.lastName}`, memberId: member.id });
     this.showMemberDropdown = false;
     this.selectedMember = {
       ...member,
@@ -89,32 +88,39 @@ export class NewLoanModalComponent implements OnInit {
     if (!isbn) return;
     this.bookNotFound = false;
     this.foundBook = null;
-    this.bookService.getBook(isbn).subscribe(book => {
-      if (book) {
-        this.foundBook = book;
-      } else {
-        this.bookNotFound = true;
-      }
+    this.bookService.getBook(isbn).subscribe({
+      next: book => { this.foundBook = book; },
+      error: () => { this.bookNotFound = true; },
     });
   }
 
   onSubmit(): void {
     this.submitted = true;
-    if (this.form.invalid || !this.selectedMember?.canBorrow || !this.foundBook || this.foundBook.availableCopies === 0) {
-      return;
-    }
+    if (
+      this.form.invalid ||
+      !this.selectedMember?.canBorrow ||
+      !this.foundBook ||
+      this.foundBook.availableCopies === 0
+    ) return;
+
     this.isSubmitting = true;
-    setTimeout(() => {
-      this.isSubmitting = false;
-      alert(`Výpožička vytvorená!\nKniha: ${this.foundBook?.title}\nČitateľ: ${this.selectedMember?.fullName}\nTermín: ${this.dueDate.toLocaleDateString('sk-SK')}`);
-      this.closed.emit();
-    }, 800);
+    this.loanService
+      .createLoan({
+        memberId: this.form.get('memberId')!.value,
+        isbn: this.form.get('isbn')!.value,
+        createdById: 0, // TODO: replace with current librarian's ID from auth
+      })
+      .subscribe({
+        next: () => { this.isSubmitting = false; this.closed.emit(); },
+        error: err => {
+          this.isSubmitting = false;
+          alert(`Chyba: ${err.error?.message ?? err.message ?? 'Nepodarilo sa vytvoriť výpožičku'}`);
+        },
+      });
   }
 
   onOverlayClick(event: MouseEvent): void {
-    if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
-      this.close();
-    }
+    if ((event.target as HTMLElement).classList.contains('modal-overlay')) this.close();
   }
 
   close(): void {

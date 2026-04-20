@@ -20,8 +20,8 @@ export interface MemberView {
   avatarColor: AvatarColor;
   memberRole: MemberRole;
   membershipType: string;
-  membershipStatus: MembershipStatus;
-  membershipExpiry: Date;
+  membershipStatus: MembershipStatus | null;
+  membershipExpiry: Date | null;
   expiryWarning: boolean;
   daysUntilExpiry: number;
   activeLoans: number;

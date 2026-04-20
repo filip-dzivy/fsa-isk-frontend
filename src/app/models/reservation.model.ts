@@ -2,6 +2,7 @@ export type ReservationStatus = 'PENDING' | 'READY_FOR_PICKUP' | 'FULFILLED' | '
 
 export interface ReservationView {
   id: number;
+  memberId: number;
   bookTitle: string;
   bookIsbn: string;
   memberName: string;

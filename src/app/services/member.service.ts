@@ -1,152 +1,115 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { MemberView, Fine } from '../models/member.model';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { MemberView, Fine, AvatarColor, CreateMemberRequest } from '../models/member.model';
+import { environment } from '../../environments/environment';
 
-const today = new Date();
-const addDays = (d: Date, n: number) => {
-  const r = new Date(d);
-  r.setDate(r.getDate() + n);
-  return r;
-};
+// ── Raw backend response types ──────────────────────────────────────────────
 
-const MOCK_MEMBERS: MemberView[] = [
-  {
-    id: 1,
-    firstName: 'Ján',
-    lastName: 'Novák',
-    email: 'jan.novak@email.sk',
-    initials: 'JN',
-    avatarColor: 'blue',
-    memberRole: 'MEMBER',
-    membershipType: 'ADULT',
-    membershipStatus: 'ACTIVE',
-    membershipExpiry: addDays(today, 245),
-    expiryWarning: false,
-    daysUntilExpiry: 245,
-    activeLoans: 2,
-    unpaidFines: 0,
-    canBorrow: true,
-    membershipActive: true,
-    fines: [],
-  },
-  {
-    id: 2,
-    firstName: 'Mária',
-    lastName: 'Kováčová',
-    email: 'maria.kovacova@email.sk',
-    initials: 'MK',
-    avatarColor: 'green',
-    memberRole: 'MEMBER',
-    membershipType: 'STUDENT',
-    membershipStatus: 'ACTIVE',
-    membershipExpiry: addDays(today, 18),
-    expiryWarning: true,
-    daysUntilExpiry: 18,
-    activeLoans: 1,
-    unpaidFines: 0,
-    canBorrow: true,
-    membershipActive: true,
-    fines: [],
-  },
-  {
-    id: 3,
-    firstName: 'Peter',
-    lastName: 'Horváth',
-    email: 'peter.horvath@email.sk',
-    initials: 'PH',
-    avatarColor: 'amber',
-    memberRole: 'MEMBER',
-    membershipType: 'ADULT',
-    membershipStatus: 'ACTIVE',
-    membershipExpiry: addDays(today, 89),
-    expiryWarning: false,
-    daysUntilExpiry: 89,
+interface BackendMoney {
+  amount: number;
+  currency: string;
+}
+
+interface BackendFine {
+  id: number;
+  amount: BackendMoney;
+  reason: string;
+  status: 'PENDING' | 'PAID' | 'WAIVED';
+}
+
+interface BackendMembership {
+  expiryDate: string;
+  status: 'ACTIVE' | 'EXPIRED' | 'SUSPENDED';
+}
+
+interface BackendMember {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  memberRole: 'MEMBER' | 'LIBRARIAN' | 'ADMIN';
+  membership: BackendMembership;
+  fines: BackendFine[];
+}
+
+// ── Mapper ───────────────────────────────────────────────────────────────────
+
+const AVATAR_COLORS: AvatarColor[] = ['blue', 'green', 'amber', 'purple'];
+
+function mapMember(m: BackendMember): MemberView {
+  const today = new Date();
+  const expiryDate = m.membership ? new Date(m.membership.expiryDate) : null;
+  const daysUntilExpiry = expiryDate
+    ? Math.ceil((expiryDate.getTime() - today.getTime()) / 86_400_000)
+    : 0;
+  const expiryWarning = daysUntilExpiry > 0 && daysUntilExpiry <= 30;
+  const pendingFines = m.fines.filter(f => f.status === 'PENDING');
+  const unpaidFinesTotal = pendingFines.reduce((sum, f) => sum + f.amount.amount, 0);
+
+  const fines: Fine[] = m.fines.map(f => ({
+    id: f.id,
+    reason: f.reason,
+    amount: f.amount.amount,
+    currency: f.amount.currency,
+    status: f.status,
+  }));
+
+  const membershipStatus = m.membership?.status ?? null;
+
+  return {
+    id: m.id,
+    firstName: m.firstName,
+    lastName: m.lastName,
+    email: m.email,
+    initials: (m.firstName[0] + m.lastName[0]).toUpperCase(),
+    avatarColor: AVATAR_COLORS[m.id % AVATAR_COLORS.length],
+    memberRole: m.memberRole,
+    membershipType: m.memberRole,
+    membershipStatus: membershipStatus as MemberView['membershipStatus'],
+    membershipExpiry: expiryDate,
+    expiryWarning,
+    daysUntilExpiry: Math.max(0, daysUntilExpiry),
     activeLoans: 0,
-    unpaidFines: 2.50,
-    canBorrow: false,
-    membershipActive: true,
-    fines: [
-      { id: 1, reason: 'Oneskorené vrátenie – Clean Code', amount: 2.50, currency: 'EUR', status: 'PENDING' },
-    ],
-  },
-  {
-    id: 4,
-    firstName: 'Eva',
-    lastName: 'Šimková',
-    email: 'eva.simkova@email.sk',
-    initials: 'EŠ',
-    avatarColor: 'purple',
-    memberRole: 'MEMBER',
-    membershipType: 'SENIOR',
-    membershipStatus: 'EXPIRED',
-    membershipExpiry: addDays(today, -15),
-    expiryWarning: false,
-    daysUntilExpiry: 0,
-    activeLoans: 0,
-    unpaidFines: 0,
-    canBorrow: false,
-    membershipActive: false,
-    fines: [],
-  },
-  {
-    id: 5,
-    firstName: 'Tomáš',
-    lastName: 'Blaho',
-    email: 'tomas.blaho@email.sk',
-    initials: 'TB',
-    avatarColor: 'blue',
-    memberRole: 'LIBRARIAN',
-    membershipType: 'ADULT',
-    membershipStatus: 'ACTIVE',
-    membershipExpiry: addDays(today, 310),
-    expiryWarning: false,
-    daysUntilExpiry: 310,
-    activeLoans: 1,
-    unpaidFines: 0,
-    canBorrow: true,
-    membershipActive: true,
-    fines: [],
-  },
-  {
-    id: 6,
-    firstName: 'Zuzana',
-    lastName: 'Ferková',
-    email: 'zuzana.ferkova@email.sk',
-    initials: 'ZF',
-    avatarColor: 'green',
-    memberRole: 'MEMBER',
-    membershipType: 'STUDENT',
-    membershipStatus: 'ACTIVE',
-    membershipExpiry: addDays(today, 22),
-    expiryWarning: true,
-    daysUntilExpiry: 22,
-    activeLoans: 1,
-    unpaidFines: 5.50,
-    canBorrow: false,
-    membershipActive: true,
-    fines: [
-      { id: 2, reason: 'Oneskorené vrátenie – Dune', amount: 3.00, currency: 'EUR', status: 'PENDING' },
-      { id: 3, reason: 'Oneskorené vrátenie – Sapiens', amount: 2.50, currency: 'EUR', status: 'PENDING' },
-    ],
-  },
-];
+    unpaidFines: unpaidFinesTotal,
+    canBorrow: membershipStatus === 'ACTIVE' && unpaidFinesTotal === 0,
+    membershipActive: membershipStatus === 'ACTIVE',
+    fines,
+  };
+}
+
+// ── Service ───────────────────────────────────────────────────────────────────
 
 @Injectable({ providedIn: 'root' })
 export class MemberService {
+  private readonly baseUrl = `${environment.apiUrl}/members`;
+
+  constructor(private http: HttpClient) {}
+
   getMembers(): Observable<MemberView[]> {
-    return of(MOCK_MEMBERS);
+    return this.http.get<BackendMember[]>(this.baseUrl).pipe(map(list => list.map(mapMember)));
   }
 
-  getMember(id: number): Observable<MemberView | undefined> {
-    return of(MOCK_MEMBERS.find(m => m.id === id));
+  getMember(id: number): Observable<MemberView> {
+    return this.http.get<BackendMember>(`${this.baseUrl}/${id}`).pipe(map(mapMember));
   }
 
-  getMockMembers(): MemberView[] {
-    return MOCK_MEMBERS;
+  createMember(request: CreateMemberRequest): Observable<MemberView> {
+    return this.http.post<BackendMember>(this.baseUrl, request).pipe(map(mapMember));
   }
 
-  getPendingFines(memberId: number): Fine[] {
-    const member = MOCK_MEMBERS.find(m => m.id === memberId);
-    return member ? member.fines.filter(f => f.status === 'PENDING') : [];
+  renewMembership(memberId: number): Observable<MemberView> {
+    return this.http
+      .post<BackendMember>(`${this.baseUrl}/${memberId}/membership/renew`, {})
+      .pipe(map(mapMember));
+  }
+
+  payFine(memberId: number, fineId: number): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${memberId}/fines/${fineId}/pay`, {});
+  }
+
+  waiveFine(memberId: number, fineId: number): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${memberId}/fines/${fineId}/waive`, {});
   }
 }
