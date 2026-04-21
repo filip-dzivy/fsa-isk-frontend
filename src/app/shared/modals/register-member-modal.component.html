@@ -16,18 +16,22 @@
             <input class="form-control"
                    [class.is-invalid]="submitted && form.get('firstName')?.invalid"
                    formControlName="firstName" placeholder="Ján" />
-            <div class="form-error" *ngIf="submitted && form.get('firstName')?.hasError('required')">
-              Meno je povinné.
-            </div>
+            @if (submitted && form.get('firstName')?.hasError('required')) {
+              <div class="form-error">
+                Meno je povinné.
+              </div>
+            }
           </div>
           <div class="form-group">
             <label>Priezvisko</label>
             <input class="form-control"
                    [class.is-invalid]="submitted && form.get('lastName')?.invalid"
                    formControlName="lastName" placeholder="Novák" />
-            <div class="form-error" *ngIf="submitted && form.get('lastName')?.hasError('required')">
-              Priezvisko je povinné.
-            </div>
+            @if (submitted && form.get('lastName')?.hasError('required')) {
+              <div class="form-error">
+                Priezvisko je povinné.
+              </div>
+            }
           </div>
         </div>
 
@@ -36,9 +40,15 @@
           <input class="form-control" type="email"
                  [class.is-invalid]="submitted && form.get('email')?.invalid"
                  formControlName="email" placeholder="jan.novak@example.sk" />
-          <div class="form-error" *ngIf="submitted && form.get('email')?.hasError('required')">E-mail je povinný.</div>
-          <div class="form-error" *ngIf="submitted && form.get('email')?.hasError('email')">Neplatný formát e-mailu.</div>
-          <div class="form-error" *ngIf="emailTaken">Tento e-mail je už registrovaný.</div>
+          @if (submitted && form.get('email')?.hasError('required')) {
+            <div class="form-error">E-mail je povinný.</div>
+          }
+          @if (submitted && form.get('email')?.hasError('email')) {
+            <div class="form-error">Neplatný formát e-mailu.</div>
+          }
+          @if (emailTaken) {
+            <div class="form-error">Tento e-mail je už registrovaný.</div>
+          }
         </div>
 
         <div class="form-group">
@@ -57,8 +67,12 @@
     <div class="modal__footer">
       <button class="btn btn-default" (click)="close()">Zrušiť</button>
       <button class="btn btn-primary" [disabled]="isSubmitting" (click)="onSubmit()">
-        <div class="spinner spinner-sm" *ngIf="isSubmitting"></div>
-        <span *ngIf="!isSubmitting">Registrovať</span>
+        @if (isSubmitting) {
+          <div class="spinner spinner-sm"></div>
+        }
+        @if (!isSubmitting) {
+          <span>Registrovať</span>
+        }
       </button>
     </div>
 

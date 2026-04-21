@@ -24,71 +24,88 @@
 </div>
 
 <!-- ── Ready alert ── -->
-<div class="alert alert-info" *ngIf="counts.ready > 0 && activeTab !== 'READY_FOR_PICKUP'">
-  <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-    <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
-  </svg>
-  <div class="alert__body">
-    {{ counts.ready }} rezervácií čaká na vyzdvihnutie — platnosť vyprší o 3 dni.
+@if (counts.ready > 0 && activeTab !== 'READY_FOR_PICKUP') {
+  <div class="alert alert-info">
+    <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+    </svg>
+    <div class="alert__body">
+      {{ counts.ready }} rezervácií čaká na vyzdvihnutie — platnosť vyprší o 3 dni.
+    </div>
+    <button class="btn btn-sm btn-primary" (click)="setTab('READY_FOR_PICKUP')">Zobraziť</button>
   </div>
-  <button class="btn btn-sm btn-primary" (click)="setTab('READY_FOR_PICKUP')">Zobraziť</button>
-</div>
+}
 
 <!-- ── Loading ── -->
-<div *ngIf="isLoading" style="padding: 40px; display: flex; justify-content: center;">
-  <div class="spinner"></div>
-</div>
+@if (isLoading) {
+  <div style="padding: 40px; display: flex; justify-content: center;">
+    <div class="spinner"></div>
+  </div>
+}
 
 <!-- ── Empty ── -->
-<div *ngIf="!isLoading && reservations.length === 0" class="empty-state">
-  <div class="empty-state__title">Žiadne rezervácie</div>
-  <div class="empty-state__desc">Pre tento filter neexistujú žiadne záznamy.</div>
-</div>
+@if (!isLoading && reservations.length === 0) {
+  <div class="empty-state">
+    <div class="empty-state__title">Žiadne rezervácie</div>
+    <div class="empty-state__desc">Pre tento filter neexistujú žiadne záznamy.</div>
+  </div>
+}
 
 <!-- ── Reservation queue items ── -->
-<div *ngIf="!isLoading && reservations.length > 0">
-  <div class="queue-item" *ngFor="let r of reservations">
+@if (!isLoading && reservations.length > 0) {
+  <div>
+    @for (r of reservations; track r.positionInQueue) {
+      <div class="queue-item">
 
-    <div class="queue-item__pos" *ngIf="r.status === 'PENDING'">
-      {{ r.positionInQueue }}
-    </div>
-    <div class="queue-item__pos"
-         *ngIf="r.status !== 'PENDING'"
-         style="background: #EEECEA; color: #9B9894;">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M9 12l2 2 4-4"/>
-      </svg>
-    </div>
+        @if (r.status === 'PENDING') {
+          <div class="queue-item__pos">
+            {{ r.positionInQueue }}
+          </div>
+        }
+        @if (r.status !== 'PENDING') {
+          <div class="queue-item__pos"
+               style="background: #EEECEA; color: #9B9894;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
+          </div>
+        }
 
-    <div class="queue-item__info">
-      <div class="queue-item__title">{{ r.bookTitle }}</div>
-      <div class="queue-item__meta">
-        {{ r.memberName }} ·
-        Rezervované {{ r.createdDate | date:'d.M.yyyy' }}
-        <span *ngIf="r.expiryDate"> · Vyzdvihnutie do {{ r.expiryDate | date:'d.M.yyyy' }}</span>
+        <div class="queue-item__info">
+          <div class="queue-item__title">{{ r.bookTitle }}</div>
+          <div class="queue-item__meta">
+            {{ r.memberName }} ·
+            Rezervované {{ r.createdDate | date:'d.M.yyyy' }}
+            @if (r.expiryDate) {
+              <span> · Vyzdvihnutie do {{ r.expiryDate | date:'d.M.yyyy' }}</span>
+            }
+          </div>
+        </div>
+
+        <span class="badge"
+              [class.badge-pending]="r.status === 'PENDING'"
+              [class.badge-ready]="r.status === 'READY_FOR_PICKUP'"
+              [class.badge-expired]="r.status === 'EXPIRED'"
+              [class.badge-cancelled]="r.status === 'CANCELLED'">
+          {{ reservationStatusLabel(r.status) }}
+        </span>
+
+        <div class="queue-item__actions">
+          @if (r.status === 'READY_FOR_PICKUP') {
+            <button
+              class="btn btn-primary btn-sm"
+              (click)="fulfillReservation(r)"
+            >Vyzdvihnúť</button>
+          }
+
+          @if (r.status === 'PENDING' || r.status === 'READY_FOR_PICKUP') {
+            <button
+              class="btn btn-default btn-sm"
+              (click)="cancelReservation(r)"
+            >Zrušiť</button>
+          }
+        </div>
       </div>
-    </div>
-
-    <span class="badge"
-          [class.badge-pending]="r.status === 'PENDING'"
-          [class.badge-ready]="r.status === 'READY_FOR_PICKUP'"
-          [class.badge-expired]="r.status === 'EXPIRED'"
-          [class.badge-cancelled]="r.status === 'CANCELLED'">
-      {{ reservationStatusLabel(r.status) }}
-    </span>
-
-    <div class="queue-item__actions">
-      <button
-        *ngIf="r.status === 'READY_FOR_PICKUP'"
-        class="btn btn-primary btn-sm"
-        (click)="fulfillReservation(r)"
-      >Vyzdvihnúť</button>
-
-      <button
-        *ngIf="r.status === 'PENDING' || r.status === 'READY_FOR_PICKUP'"
-        class="btn btn-default btn-sm"
-        (click)="cancelReservation(r)"
-      >Zrušiť</button>
-    </div>
+    }
   </div>
-</div>
+}

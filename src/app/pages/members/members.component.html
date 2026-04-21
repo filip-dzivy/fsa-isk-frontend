@@ -25,9 +25,11 @@
   <div class="stat-card">
     <div class="stat-card__label">Expirujúce do 30 dní</div>
     <div class="stat-card__value" style="color: #633806;">{{ stats.expiringSoon }}</div>
-    <div class="stat-card__delta stat-card__delta--down" *ngIf="stats.expiringSoon > 0">
-      Potrebujú upozornenie
-    </div>
+    @if (stats.expiringSoon > 0) {
+      <div class="stat-card__delta stat-card__delta--down">
+        Potrebujú upozornenie
+      </div>
+    }
   </div>
   <div class="stat-card">
     <div class="stat-card__label">S neuhradenými pokutami</div>
@@ -36,16 +38,18 @@
 </div>
 
 <!-- ── Expiry warning ── -->
-<div class="alert alert-warning" *ngIf="stats.expiringSoon > 0">
-  <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-    <path d="M12 9v4M12 17h.01"/>
-  </svg>
-  <div class="alert__body">
-    <div class="alert__title">{{ stats.expiringSoon }} čitateľov má členstvo expirujúce do 30 dní</div>
-    Skontroluj nastavenia notifikácií.
+@if (stats.expiringSoon > 0) {
+  <div class="alert alert-warning">
+    <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <path d="M12 9v4M12 17h.01"/>
+    </svg>
+    <div class="alert__body">
+      <div class="alert__title">{{ stats.expiringSoon }} čitateľov má členstvo expirujúce do 30 dní</div>
+      Skontroluj nastavenia notifikácií.
+    </div>
   </div>
-</div>
+}
 
 <!-- ── Search + filter ── -->
 <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
@@ -72,98 +76,118 @@
 
 <!-- ── Members table ── -->
 <div class="card">
-  <div *ngIf="isLoading" style="display: flex; justify-content: center; padding: 40px;">
-    <div class="spinner"></div>
-  </div>
+  @if (isLoading) {
+    <div style="display: flex; justify-content: center; padding: 40px;">
+      <div class="spinner"></div>
+    </div>
+  }
 
-  <div *ngIf="!isLoading && members.length === 0" class="empty-state">
-    <div class="empty-state__title">Žiadni čitatelia</div>
-    <div class="empty-state__desc">Pre tento filter neexistujú žiadni čitatelia.</div>
-  </div>
+  @if (!isLoading && members.length === 0) {
+    <div class="empty-state">
+      <div class="empty-state__title">Žiadni čitatelia</div>
+      <div class="empty-state__desc">Pre tento filter neexistujú žiadni čitatelia.</div>
+    </div>
+  }
 
-  <table class="data-table" *ngIf="!isLoading && members.length > 0">
-    <thead>
-    <tr>
-      <th>Čitateľ</th>
-      <th>Typ členstva</th>
-      <th>Platné do</th>
-      <th>Aktívne výpožičky</th>
-      <th>Pokuty</th>
-      <th>Stav</th>
-      <th>Akcie</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr *ngFor="let member of members">
-      <td>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div class="avatar avatar-md" [class]="'avatar-' + member.avatarColor">
-            {{ member.initials }}
-          </div>
-          <div>
-            <div class="data-table__cell-primary">{{ member.firstName }} {{ member.lastName }}</div>
-            <div class="data-table__cell-secondary">{{ member.email }}</div>
-          </div>
-        </div>
-      </td>
-      <td>
-        <span class="badge badge-brand">{{ membershipTypeLabel(member.membershipType) }}</span>
-      </td>
-      <td>
-        <span [style.color]="member.expiryWarning ? '#633806' : 'inherit'">
-          {{ member.membershipExpiry | date:'d.M.yyyy' }}
-        </span>
-        <div *ngIf="member.expiryWarning" class="data-table__cell-secondary" style="color: #633806;">
-          Expiruje o {{ member.daysUntilExpiry }} dní
-        </div>
-        <div *ngIf="!member.membershipActive" class="data-table__cell-secondary" style="color: #791F1F;">
-          Expirované
-        </div>
-      </td>
-      <td>{{ member.activeLoans }}</td>
-      <td>
-        <span *ngIf="member.unpaidFines > 0" style="color: #791F1F; font-weight: 500;">
-          {{ member.unpaidFines | currency:'EUR':'symbol':'1.2-2' }}
-        </span>
-        <span *ngIf="member.unpaidFines === 0" class="text-muted">—</span>
-      </td>
-      <td>
-        <span class="badge"
-              [class.badge-active]="member.canBorrow"
-              [class.badge-overdue]="!member.canBorrow">
-          <span class="badge__dot"></span>
-          {{ member.canBorrow ? 'Aktívny' : 'Blokovaný' }}
-        </span>
-      </td>
-      <td>
-        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-          <button class="btn btn-default btn-sm" (click)="openMemberDetail(member)">Detail</button>
-          <button
-            *ngIf="member.unpaidFines > 0"
-            class="btn btn-sm btn-danger"
-            (click)="openPayFineModal(member)"
-          >Uhradiť pokutu</button>
-          <button
-            *ngIf="member.expiryWarning || !member.membershipActive"
-            class="btn btn-sm btn-success"
-            (click)="renewMembership(member)"
-          >Obnoviť</button>
-        </div>
-      </td>
-    </tr>
-    </tbody>
-  </table>
+  @if (!isLoading && members.length > 0) {
+    <table class="data-table">
+      <thead>
+      <tr>
+        <th>Čitateľ</th>
+        <th>Typ členstva</th>
+        <th>Platné do</th>
+        <th>Aktívne výpožičky</th>
+        <th>Pokuty</th>
+        <th>Stav</th>
+        <th>Akcie</th>
+      </tr>
+      </thead>
+      <tbody>
+      @for (member of members; track member.email) {
+        <tr>
+          <td>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="avatar avatar-md" [class]="'avatar-' + member.avatarColor">
+                {{ member.initials }}
+              </div>
+              <div>
+                <div class="data-table__cell-primary">{{ member.firstName }} {{ member.lastName }}</div>
+                <div class="data-table__cell-secondary">{{ member.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="badge badge-brand">{{ membershipTypeLabel(member.membershipType) }}</span>
+          </td>
+          <td>
+            <span [style.color]="member.expiryWarning ? '#633806' : 'inherit'">
+              {{ member.membershipExpiry | date:'d.M.yyyy' }}
+            </span>
+            @if (member.expiryWarning) {
+              <div class="data-table__cell-secondary" style="color: #633806;">
+                Expiruje o {{ member.daysUntilExpiry }} dní
+              </div>
+            }
+            @if (!member.membershipActive) {
+              <div class="data-table__cell-secondary" style="color: #791F1F;">
+                Expirované
+              </div>
+            }
+          </td>
+          <td>{{ member.activeLoans }}</td>
+          <td>
+            @if (member.unpaidFines > 0) {
+              <span style="color: #791F1F; font-weight: 500;">
+                {{ member.unpaidFines | currency:'EUR':'symbol':'1.2-2' }}
+              </span>
+            }
+            @if (member.unpaidFines === 0) {
+              <span class="text-muted">—</span>
+            }
+          </td>
+          <td>
+            <span class="badge"
+                  [class.badge-active]="member.canBorrow"
+                  [class.badge-overdue]="!member.canBorrow">
+              <span class="badge__dot"></span>
+              {{ member.canBorrow ? 'Aktívny' : 'Blokovaný' }}
+            </span>
+          </td>
+          <td>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button class="btn btn-default btn-sm" (click)="openMemberDetail(member)">Detail</button>
+              @if (member.unpaidFines > 0) {
+                <button
+                  class="btn btn-sm btn-danger"
+                  (click)="openPayFineModal(member)"
+                >Uhradiť pokutu</button>
+              }
+              @if (member.expiryWarning || !member.membershipActive) {
+                <button
+                  class="btn btn-sm btn-success"
+                  (click)="renewMembership(member)"
+                >Obnoviť</button>
+              }
+            </div>
+          </td>
+        </tr>
+      }
+      </tbody>
+    </table>
+  }
 </div>
 
 <!-- ── Register Modal ── -->
-<app-register-member-modal
-  *ngIf="showRegisterModal"
-  (closed)="onMemberRegistered($event)"
-></app-register-member-modal>
+@if (showRegisterModal) {
+  <app-register-member-modal
+    (closed)="onMemberRegistered($event)"
+  ></app-register-member-modal>
+}
 
 <!-- ── Pay Fine Modal ── -->
-<app-pay-fine-modal
-  *ngIf="showPayFineModal && selectedMember"
-  [member]="selectedMember!"
-  (closed)="onFinesPaid()"
-></app-pay-fine-modal>
+@if (showPayFineModal && selectedMember) {
+  <app-pay-fine-modal
+    [member]="selectedMember!"
+    (closed)="onFinesPaid()"
+  ></app-pay-fine-modal>
+}

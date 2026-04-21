@@ -25,40 +25,50 @@
           </div>
 
           <!-- Dropdown results -->
-          <div *ngIf="showMemberDropdown"
-               style="position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 0.5px solid #DDDBD8; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.08); z-index: 10; max-height: 180px; overflow-y: auto;">
-            <div
-              *ngFor="let m of memberSearchResults"
-              (click)="selectMember(m)"
-              style="padding: 9px 14px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px;"
-              (mouseenter)="$any($event.currentTarget).style.background='#F7F6F4'"
-              (mouseleave)="$any($event.currentTarget).style.background=''"
-            >
-              <div class="avatar avatar-sm" [class]="'avatar-' + m.avatarColor">{{ m.initials }}</div>
-              <div>
-                <div style="font-weight: 500;">{{ m.firstName }} {{ m.lastName }}</div>
-                <div style="color: #9B9894; font-size: 12px;">{{ m.email }}</div>
-              </div>
+          @if (showMemberDropdown) {
+            <div style="position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 0.5px solid #DDDBD8; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.08); z-index: 10; max-height: 180px; overflow-y: auto;">
+              @for (m of memberSearchResults; track m.email) {
+                <div
+                  (click)="selectMember(m)"
+                  style="padding: 9px 14px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px;"
+                  (mouseenter)="$any($event.currentTarget).style.background='#F7F6F4'"
+                  (mouseleave)="$any($event.currentTarget).style.background=''"
+                >
+                  <div class="avatar avatar-sm" [class]="'avatar-' + m.avatarColor">{{ m.initials }}</div>
+                  <div>
+                    <div style="font-weight: 500;">{{ m.firstName }} {{ m.lastName }}</div>
+                    <div style="color: #9B9894; font-size: 12px;">{{ m.email }}</div>
+                  </div>
+                </div>
+              }
             </div>
-          </div>
+          }
 
           <!-- Selected member card -->
-          <div *ngIf="selectedMember" style="margin-top: 8px; padding: 10px 12px; background: #F7F6F4; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
-            <div class="avatar avatar-sm" [class]="'avatar-' + selectedMember.avatarColor">{{ selectedMember.initials }}</div>
-            <div>
-              <div style="font-size: 13px; font-weight: 500;">{{ selectedMember.fullName }}</div>
-              <div style="font-size: 12px; color: #9B9894;">{{ selectedMember.email }}</div>
+          @if (selectedMember) {
+            <div style="margin-top: 8px; padding: 10px 12px; background: #F7F6F4; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+              <div class="avatar avatar-sm" [class]="'avatar-' + selectedMember.avatarColor">{{ selectedMember.initials }}</div>
+              <div>
+                <div style="font-size: 13px; font-weight: 500;">{{ selectedMember.fullName }}</div>
+                <div style="font-size: 12px; color: #9B9894;">{{ selectedMember.email }}</div>
+              </div>
+              @if (!selectedMember.canBorrow) {
+                <div class="badge badge-overdue" style="margin-left: auto;">
+                  {{ selectedMember.blockReason }}
+                </div>
+              }
+              @if (selectedMember.canBorrow) {
+                <div class="badge badge-active" style="margin-left: auto;">
+                  Môže si požičať
+                </div>
+              }
             </div>
-            <div *ngIf="!selectedMember.canBorrow" class="badge badge-overdue" style="margin-left: auto;">
-              {{ selectedMember.blockReason }}
+          }
+          @if (submitted && form.get('memberId')?.hasError('required')) {
+            <div class="form-error">
+              Čitateľ je povinný.
             </div>
-            <div *ngIf="selectedMember.canBorrow" class="badge badge-active" style="margin-left: auto;">
-              Môže si požičať
-            </div>
-          </div>
-          <div class="form-error" *ngIf="submitted && form.get('memberId')?.hasError('required')">
-            Čitateľ je povinný.
-          </div>
+          }
         </div>
 
         <!-- ISBN input -->
@@ -72,32 +82,41 @@
           <div class="form-hint">Zadaj ISBN manuálne alebo zaskenny čiarový kód.</div>
 
           <!-- Book result -->
-          <div *ngIf="foundBook" style="margin-top: 8px; padding: 10px 12px; background: #F7F6F4; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
-            <div>
-              <div style="font-size: 13px; font-weight: 500;">{{ foundBook.title }}</div>
-              <div style="font-size: 12px; color: #9B9894;">{{ foundBook.author }}</div>
+          @if (foundBook) {
+            <div style="margin-top: 8px; padding: 10px 12px; background: #F7F6F4; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+              <div>
+                <div style="font-size: 13px; font-weight: 500;">{{ foundBook.title }}</div>
+                <div style="font-size: 12px; color: #9B9894;">{{ foundBook.author }}</div>
+              </div>
+              <span class="badge" [class.badge-active]="foundBook.availableCopies > 0"
+                    [class.badge-overdue]="foundBook.availableCopies === 0">
+                {{ foundBook.availableCopies > 0 ? foundBook.availableCopies + ' dostupných' : 'Nedostupná' }}
+              </span>
             </div>
-            <span class="badge" [class.badge-active]="foundBook.availableCopies > 0"
-                  [class.badge-overdue]="foundBook.availableCopies === 0">
-              {{ foundBook.availableCopies > 0 ? foundBook.availableCopies + ' dostupných' : 'Nedostupná' }}
-            </span>
-          </div>
+          }
 
-          <div class="form-error" *ngIf="submitted && form.get('isbn')?.hasError('required')">ISBN je povinné.</div>
-          <div class="form-error" *ngIf="bookNotFound">Kniha s týmto ISBN sa nenašla.</div>
-          <div class="form-error" *ngIf="foundBook && foundBook.availableCopies === 0">
-            Kniha nie je dostupná. Čitateľ si môže vytvoriť rezerváciu.
-          </div>
+          @if (submitted && form.get('isbn')?.hasError('required')) {
+            <div class="form-error">ISBN je povinné.</div>
+          }
+          @if (bookNotFound) {
+            <div class="form-error">Kniha s týmto ISBN sa nenašla.</div>
+          }
+          @if (foundBook && foundBook.availableCopies === 0) {
+            <div class="form-error">
+              Kniha nie je dostupná. Čitateľ si môže vytvoriť rezerváciu.
+            </div>
+          }
         </div>
 
         <!-- Due date info -->
-        <div *ngIf="selectedMember?.canBorrow && foundBook && foundBook.availableCopies > 0"
-             style="padding: 12px; background: #E6F1FB; border-radius: 8px; font-size: 13px; color: #0C447C;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align: middle; margin-right: 4px;">
-            <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
-          </svg>
-          Termín vrátenia: <strong>{{ dueDate | date:'d.M.yyyy' }}</strong> (14 dní od dnes)
-        </div>
+        @if (selectedMember?.canBorrow && foundBook && foundBook.availableCopies > 0) {
+          <div style="padding: 12px; background: #E6F1FB; border-radius: 8px; font-size: 13px; color: #0C447C;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align: middle; margin-right: 4px;">
+              <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+            </svg>
+            Termín vrátenia: <strong>{{ dueDate | date:'d.M.yyyy' }}</strong> (14 dní od dnes)
+          </div>
+        }
 
       </form>
     </div>
@@ -107,8 +126,12 @@
       <button class="btn btn-primary"
               [disabled]="isSubmitting || !selectedMember?.canBorrow || !foundBook || foundBook.availableCopies === 0"
               (click)="onSubmit()">
-        <div class="spinner spinner-sm" *ngIf="isSubmitting"></div>
-        <span *ngIf="!isSubmitting">Vytvoriť výpožičku</span>
+        @if (isSubmitting) {
+          <div class="spinner spinner-sm"></div>
+        }
+        @if (!isSubmitting) {
+          <span>Vytvoriť výpožičku</span>
+        }
       </button>
     </div>
 

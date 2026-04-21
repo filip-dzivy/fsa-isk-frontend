@@ -20,16 +20,18 @@
 </div>
 
 <!-- ── Overdue alert ── -->
-<div class="alert alert-danger" *ngIf="overdueCount > 0 && showAlert">
-  <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-    <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
-  </svg>
-  <div class="alert__body">
-    <div class="alert__title">{{ overdueCount }} výpožičiek po termíne</div>
-    Čitatelia budú automaticky pokutovaní pri vrátení.
+@if (overdueCount > 0 && showAlert) {
+  <div class="alert alert-danger">
+    <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+    </svg>
+    <div class="alert__body">
+      <div class="alert__title">{{ overdueCount }} výpožičiek po termíne</div>
+      Čitatelia budú automaticky pokutovaní pri vrátení.
+    </div>
+    <button class="alert__close" (click)="dismissAlert()">×</button>
   </div>
-  <button class="alert__close" (click)="dismissAlert()">×</button>
-</div>
+}
 
 <!-- ── Tab navigation ── -->
 <div class="tab-nav">
@@ -61,104 +63,121 @@
 
 <!-- ── Table ── -->
 <div class="card">
-  <div *ngIf="isLoading" style="display: flex; justify-content: center; padding: 40px;">
-    <div class="spinner"></div>
-  </div>
+  @if (isLoading) {
+    <div style="display: flex; justify-content: center; padding: 40px;">
+      <div class="spinner"></div>
+    </div>
+  }
 
-  <div *ngIf="!isLoading && filteredLoans.length === 0" class="empty-state">
-    <div class="empty-state__title">Žiadne výpožičky</div>
-    <div class="empty-state__desc">Pre tento filter neexistujú žiadne záznamy.</div>
-  </div>
+  @if (!isLoading && filteredLoans.length === 0) {
+    <div class="empty-state">
+      <div class="empty-state__title">Žiadne výpožičky</div>
+      <div class="empty-state__desc">Pre tento filter neexistujú žiadne záznamy.</div>
+    </div>
+  }
 
-  <table class="data-table" *ngIf="!isLoading && filteredLoans.length > 0">
-    <thead>
-    <tr>
-      <th>Kniha</th>
-      <th>Čitateľ</th>
-      <th>Vypožičané</th>
-      <th>Termín vrátenia</th>
-      <th>Predĺženia</th>
-      <th>Stav</th>
-      <th>Akcie</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr *ngFor="let loan of filteredLoans" [style.background]="loan.status === 'OVERDUE' ? '#FFF5F5' : ''">
-      <td>
-        <div class="data-table__cell-primary">{{ loan.bookTitle }}</div>
-        <div class="data-table__cell-secondary"><code>{{ loan.bookIsbn }}</code></div>
-      </td>
-      <td>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div class="avatar avatar-sm avatar-blue">{{ loan.memberInitials }}</div>
-          <div>
-            <div class="data-table__cell-primary">{{ loan.memberName }}</div>
-            <div class="data-table__cell-secondary">{{ loan.memberEmail }}</div>
-          </div>
-        </div>
-      </td>
-      <td>{{ loan.loanDate | date:'d.M.yyyy' }}</td>
-      <td>
-        <span [style.color]="loan.status === 'OVERDUE' ? '#791F1F' : 'inherit'">
-          {{ loan.dueDate | date:'d.M.yyyy' }}
-        </span>
-        <div *ngIf="loan.status === 'OVERDUE'" class="data-table__cell-secondary" style="color: #791F1F;">
-          {{ loan.daysOverdue }} dní po termíne
-        </div>
-      </td>
-      <td>
-        <span style="font-size: 13px;">{{ loan.renewalCount }} / 1</span>
-      </td>
-      <td>
-        <span class="badge"
-              [class.badge-active]="loan.status === 'ACTIVE'"
-              [class.badge-overdue]="loan.status === 'OVERDUE'"
-              [class.badge-returned]="loan.status === 'RETURNED'">
-          <span class="badge__dot"></span>
-          {{ loanStatusLabel(loan.status) }}
-        </span>
-      </td>
-      <td>
-        <div style="display: flex; gap: 6px;">
-          <button
-            *ngIf="loan.status !== 'RETURNED'"
-            class="btn btn-sm"
-            [class.btn-primary]="loan.status === 'OVERDUE'"
-            [class.btn-default]="loan.status === 'ACTIVE'"
-            (click)="returnLoan(loan)"
-          >Vrátiť</button>
+  @if (!isLoading && filteredLoans.length > 0) {
+    <table class="data-table">
+      <thead>
+      <tr>
+        <th>Kniha</th>
+        <th>Čitateľ</th>
+        <th>Vypožičané</th>
+        <th>Termín vrátenia</th>
+        <th>Predĺženia</th>
+        <th>Stav</th>
+        <th>Akcie</th>
+      </tr>
+      </thead>
+      <tbody>
+      @for (loan of filteredLoans; track loan.bookIsbn) {
+        <tr [style.background]="loan.status === 'OVERDUE' ? '#FFF5F5' : ''">
+          <td>
+            <div class="data-table__cell-primary">{{ loan.bookTitle }}</div>
+            <div class="data-table__cell-secondary"><code>{{ loan.bookIsbn }}</code></div>
+          </td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div class="avatar avatar-sm avatar-blue">{{ loan.memberInitials }}</div>
+              <div>
+                <div class="data-table__cell-primary">{{ loan.memberName }}</div>
+                <div class="data-table__cell-secondary">{{ loan.memberEmail }}</div>
+              </div>
+            </div>
+          </td>
+          <td>{{ loan.loanDate | date:'d.M.yyyy' }}</td>
+          <td>
+            <span [style.color]="loan.status === 'OVERDUE' ? '#791F1F' : 'inherit'">
+              {{ loan.dueDate | date:'d.M.yyyy' }}
+            </span>
+            @if (loan.status === 'OVERDUE') {
+              <div class="data-table__cell-secondary" style="color: #791F1F;">
+                {{ loan.daysOverdue }} dní po termíne
+              </div>
+            }
+          </td>
+          <td>
+            <span style="font-size: 13px;">{{ loan.renewalCount }} / 1</span>
+          </td>
+          <td>
+            <span class="badge"
+                  [class.badge-active]="loan.status === 'ACTIVE'"
+                  [class.badge-overdue]="loan.status === 'OVERDUE'"
+                  [class.badge-returned]="loan.status === 'RETURNED'">
+              <span class="badge__dot"></span>
+              {{ loanStatusLabel(loan.status) }}
+            </span>
+          </td>
+          <td>
+            <div style="display: flex; gap: 6px;">
+              @if (loan.status !== 'RETURNED') {
+                <button
+                  class="btn btn-sm"
+                  [class.btn-primary]="loan.status === 'OVERDUE'"
+                  [class.btn-default]="loan.status === 'ACTIVE'"
+                  (click)="returnLoan(loan)"
+                >Vrátiť</button>
+              }
 
-          <button
-            *ngIf="loan.status === 'ACTIVE'"
-            class="btn btn-default btn-sm"
-            [disabled]="loan.renewalCount >= 1"
-            (click)="renewLoan(loan)"
-          >Predĺžiť</button>
+              @if (loan.status === 'ACTIVE') {
+                <button
+                  class="btn btn-default btn-sm"
+                  [disabled]="loan.renewalCount >= 1"
+                  (click)="renewLoan(loan)"
+                >Predĺžiť</button>
+              }
 
-          <button class="btn btn-ghost btn-sm" (click)="openLoanDetail(loan)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-            </svg>
-          </button>
-        </div>
-      </td>
-    </tr>
-    </tbody>
-  </table>
+              <button class="btn btn-ghost btn-sm" (click)="openLoanDetail(loan)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      }
+      </tbody>
+    </table>
+  }
 </div>
 
 <!-- ── Pagination ── -->
-<div style="display: flex; justify-content: flex-end; margin-top: 16px;" *ngIf="totalPages > 1">
-  <nav class="pagination">
-    <button class="pagination__item" [disabled]="currentPage === 1" (click)="prevPage()">‹</button>
-    <button class="pagination__item" *ngFor="let p of pageNumbers"
-            [class.active]="p === currentPage" (click)="goToPage(p)">{{ p }}</button>
-    <button class="pagination__item" [disabled]="currentPage === totalPages" (click)="nextPage()">›</button>
-  </nav>
-</div>
+@if (totalPages > 1) {
+  <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+    <nav class="pagination">
+      <button class="pagination__item" [disabled]="currentPage === 1" (click)="prevPage()">‹</button>
+      @for (p of pageNumbers; track p) {
+        <button class="pagination__item"
+                [class.active]="p === currentPage" (click)="goToPage(p)">{{ p }}</button>
+      }
+      <button class="pagination__item" [disabled]="currentPage === totalPages" (click)="nextPage()">›</button>
+    </nav>
+  </div>
+}
 
 <!-- ── New Loan Modal ── -->
-<app-new-loan-modal
-  *ngIf="showNewLoanModal"
-  (closed)="onLoanCreated()"
-></app-new-loan-modal>
+@if (showNewLoanModal) {
+  <app-new-loan-modal
+    (closed)="onLoanCreated()"
+  ></app-new-loan-modal>
+}

@@ -86,12 +86,12 @@
 </div>
 
 <!-- ── Loading state ── -->
-<div *ngIf="isLoading" style="display: flex; justify-content: center; padding: 48px 0;">
+<div [@if]="isLoading" style="display: flex; justify-content: center; padding: 48px 0;">
   <div class="spinner spinner-lg"></div>
 </div>
 
 <!-- ── Empty state ── -->
-<div *ngIf="!isLoading && books.length === 0" class="empty-state">
+<div [@if]="!isLoading && books.length === 0" class="empty-state">
   <div class="empty-state__icon">
     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#C4C2BE" stroke-width="1.5">
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
@@ -104,11 +104,11 @@
 </div>
 
 <!-- ── GRID VIEW ── -->
-<div *ngIf="!isLoading && books.length > 0 && viewMode === 'grid'"
+<div [@if]="!isLoading && books.length > 0 && viewMode === 'grid'"
      style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px;">
   <div
     class="book-card"
-    *ngFor="let book of books"
+    [@for]="let book of books"
     (click)="openBookDetail(book)"
   >
     <!-- Colour spine based on genre -->

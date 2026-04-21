@@ -32,7 +32,9 @@
 
       <select class="form-select" style="width: 180px;" [(ngModel)]="selectedGenre" (change)="onFilter()">
         <option value="">Všetky žánre</option>
-        <option *ngFor="let g of genres" [value]="g.value">{{ g.label }}</option>
+        @for (g of genres; track g.value) {
+          <option [value]="g.value">{{ g.label }}</option>
+        }
       </select>
 
       <select class="form-select" style="width: 160px;" [(ngModel)]="availabilityFilter" (change)="onFilter()">
@@ -72,125 +74,139 @@
 </div>
 
 <!-- ── Loading ── -->
-<div *ngIf="isLoading" style="display: flex; justify-content: center; padding: 48px 0;">
-  <div class="spinner spinner-lg"></div>
-</div>
+@if (isLoading) {
+  <div style="display: flex; justify-content: center; padding: 48px 0;">
+    <div class="spinner spinner-lg"></div>
+  </div>
+}
 
 <!-- ── Empty ── -->
-<div *ngIf="!isLoading && books.length === 0" class="empty-state">
-  <div class="empty-state__icon">
-    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#C4C2BE" stroke-width="1.5">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-    </svg>
+@if (!isLoading && books.length === 0) {
+  <div class="empty-state">
+    <div class="empty-state__icon">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#C4C2BE" stroke-width="1.5">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+    </div>
+    <div class="empty-state__title">Žiadne knihy nenájdené</div>
+    <div class="empty-state__desc">Skús zmeniť vyhľadávacie kritériá alebo pridaj nové knihy do katalógu.</div>
+    <button class="btn btn-primary" (click)="openAddBookModal()">+ Pridať prvú knihu</button>
   </div>
-  <div class="empty-state__title">Žiadne knihy nenájdené</div>
-  <div class="empty-state__desc">Skús zmeniť vyhľadávacie kritériá alebo pridaj nové knihy do katalógu.</div>
-  <button class="btn btn-primary" (click)="openAddBookModal()">+ Pridať prvú knihu</button>
-</div>
+}
 
 <!-- ── GRID VIEW ── -->
-<div *ngIf="!isLoading && books.length > 0 && viewMode === 'grid'"
-     style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px;">
-  <div
-    class="book-card"
-    *ngFor="let book of books"
-    (click)="openBookDetail(book)"
-  >
-    <div class="book-card__spine" [style.background]="genreColor(book.genre)">
-      <span style="font-size: 11px; font-weight: 500; opacity: .75; line-height: 1.3; color: white;">
-        {{ book.title | slice:0:20 }}
-      </span>
-    </div>
-
-    <div class="book-card__title">{{ book.title }}</div>
-    <div class="book-card__author">{{ book.author }}</div>
-
-    <div class="book-card__footer">
-      <span class="badge" [class.badge-active]="book.availableCopies > 0"
-            [class.badge-overdue]="book.availableCopies === 0">
-        {{ book.availableCopies > 0 ? book.availableCopies + ' dostupné' : 'Nedostupná' }}
-      </span>
-      <button
-        *ngIf="book.availableCopies === 0"
-        class="btn btn-ghost btn-sm"
-        (click)="$event.stopPropagation(); reserveBook(book)"
-        title="Rezervovať"
+@if (!isLoading && books.length > 0 && viewMode === 'grid') {
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px;">
+    @for (book of books; track book.isbn) {
+      <div
+        class="book-card"
+        (click)="openBookDetail(book)"
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path d="M5 12h14M12 5l7 7-7 7"/>
-        </svg>
-      </button>
-    </div>
+        <div class="book-card__spine" [style.background]="genreColor(book.genre)">
+          <span style="font-size: 11px; font-weight: 500; opacity: .75; line-height: 1.3; color: white;">
+            {{ book.title | slice:0:20 }}
+          </span>
+        </div>
+
+        <div class="book-card__title">{{ book.title }}</div>
+        <div class="book-card__author">{{ book.author }}</div>
+
+        <div class="book-card__footer">
+          <span class="badge" [class.badge-active]="book.availableCopies > 0"
+                [class.badge-overdue]="book.availableCopies === 0">
+            {{ book.availableCopies > 0 ? book.availableCopies + ' dostupné' : 'Nedostupná' }}
+          </span>
+          @if (book.availableCopies === 0) {
+            <button
+              class="btn btn-ghost btn-sm"
+              (click)="$event.stopPropagation(); reserveBook(book)"
+              title="Rezervovať"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </button>
+          }
+        </div>
+      </div>
+    }
   </div>
-</div>
+}
 
 <!-- ── LIST / TABLE VIEW ── -->
-<div *ngIf="!isLoading && books.length > 0 && viewMode === 'list'" class="card">
-  <table class="data-table">
-    <thead>
-    <tr>
-      <th>Kniha</th>
-      <th>ISBN</th>
-      <th>Žáner</th>
-      <th>Kópie</th>
-      <th>Dostupné</th>
-      <th>Akcie</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr *ngFor="let book of books">
-      <td>
-        <div class="data-table__cell-primary">{{ book.title }}</div>
-        <div class="data-table__cell-secondary">{{ book.author }}</div>
-      </td>
-      <td><code>{{ book.isbn }}</code></td>
-      <td>{{ book.genre }}</td>
-      <td>{{ book.totalCopies }}</td>
-      <td>
-        <span class="badge" [class.badge-active]="book.availableCopies > 0"
-              [class.badge-overdue]="book.availableCopies === 0">
-          {{ book.availableCopies > 0 ? book.availableCopies + ' / ' + book.totalCopies : 'Nedostupná' }}
-        </span>
-      </td>
-      <td>
-        <div style="display: flex; gap: 6px;">
-          <button class="btn btn-default btn-sm" (click)="openBookDetail(book)">Detail</button>
-          <button class="btn btn-ghost btn-sm" (click)="editBook(book)">Upraviť</button>
-        </div>
-      </td>
-    </tr>
-    </tbody>
-  </table>
-</div>
+@if (!isLoading && books.length > 0 && viewMode === 'list') {
+  <div class="card">
+    <table class="data-table">
+      <thead>
+      <tr>
+        <th>Kniha</th>
+        <th>ISBN</th>
+        <th>Žáner</th>
+        <th>Kópie</th>
+        <th>Dostupné</th>
+        <th>Akcie</th>
+      </tr>
+      </thead>
+      <tbody>
+      @for (book of books; track book.isbn) {
+        <tr>
+          <td>
+            <div class="data-table__cell-primary">{{ book.title }}</div>
+            <div class="data-table__cell-secondary">{{ book.author }}</div>
+          </td>
+          <td><code>{{ book.isbn }}</code></td>
+          <td>{{ book.genre }}</td>
+          <td>{{ book.totalCopies }}</td>
+          <td>
+            <span class="badge" [class.badge-active]="book.availableCopies > 0"
+                  [class.badge-overdue]="book.availableCopies === 0">
+              {{ book.availableCopies > 0 ? book.availableCopies + ' / ' + book.totalCopies : 'Nedostupná' }}
+            </span>
+          </td>
+          <td>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn btn-default btn-sm" (click)="openBookDetail(book)">Detail</button>
+              <button class="btn btn-ghost btn-sm" (click)="editBook(book)">Upraviť</button>
+            </div>
+          </td>
+        </tr>
+      }
+      </tbody>
+    </table>
+  </div>
+}
 
 <!-- ── Pagination ── -->
-<div *ngIf="!isLoading && totalPages > 1"
-     style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px;">
-  <span class="text-muted">Zobrazené {{ pageFrom }}–{{ pageTo }} z {{ totalBooks }}</span>
-  <nav class="pagination">
-    <button class="pagination__item" [disabled]="currentPage === 1" (click)="prevPage()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M15 18l-6-6 6-6"/>
-      </svg>
-    </button>
-    <button
-      class="pagination__item"
-      *ngFor="let p of pageNumbers"
-      [class.active]="p === currentPage"
-      (click)="goToPage(p)"
-    >{{ p }}</button>
-    <button class="pagination__item" [disabled]="currentPage === totalPages" (click)="nextPage()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M9 18l6-6-6-6"/>
-      </svg>
-    </button>
-  </nav>
-</div>
+@if (!isLoading && totalPages > 1) {
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px;">
+    <span class="text-muted">Zobrazené {{ pageFrom }}–{{ pageTo }} z {{ totalBooks }}</span>
+    <nav class="pagination">
+      <button class="pagination__item" [disabled]="currentPage === 1" (click)="prevPage()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
+      @for (p of pageNumbers; track p) {
+        <button
+          class="pagination__item"
+          [class.active]="p === currentPage"
+          (click)="goToPage(p)"
+        >{{ p }}</button>
+      }
+      <button class="pagination__item" [disabled]="currentPage === totalPages" (click)="nextPage()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 18l6-6-6-6"/>
+        </svg>
+      </button>
+    </nav>
+  </div>
+}
 
 <!-- ── New Loan Modal ── -->
-<app-new-loan-modal
-  *ngIf="showNewLoanModal"
-  [prefillIsbn]="selectedBookIsbn"
-  (closed)="onLoanCreated()"
-></app-new-loan-modal>
+@if (showNewLoanModal) {
+  <app-new-loan-modal
+    [prefillIsbn]="selectedBookIsbn"
+    (closed)="onLoanCreated()"
+  ></app-new-loan-modal>
+}
