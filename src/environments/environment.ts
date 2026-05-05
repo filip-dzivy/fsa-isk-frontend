@@ -1,7 +1,7 @@
 export const environment = {
   apiUrl: '',
   keycloak: {
-    url: 'http://localhost:8081',
+    url: 'http://keycloak:74-234-72-21.sslip.io',
     realm: 'ISK',
     clientId: 'isk-client',
   },
